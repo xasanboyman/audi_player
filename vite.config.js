@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite';
-import path from 'path';
+import { fileURLToPath, URL } from 'node:url';
 
 export default defineConfig({
   server: {
@@ -16,7 +16,25 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src')
+      '@': fileURLToPath(new URL('./src', import.meta.url))
+    }
+  },
+  build: {
+    chunkSizeWarningLimit: 1500,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('@pixiv/three-vrm')) {
+            return 'vendor-vrm';
+          }
+          if (id.includes('three/examples/')) {
+            return 'vendor-three-addons';
+          }
+          if (id.includes('three')) {
+            return 'vendor-three-core';
+          }
+        }
+      }
     }
   }
 });

@@ -102,30 +102,45 @@ export class StageLighting {
   }
 
   setupEqualizerRing() {
-    // 48 equalizer pillars around stage perimeter
+    // 48 equalizer pillars around stage perimeter converted to a single high-performance InstancedMesh
+    // Slashes 47 draw calls per frame, massively reducing laptop GPU driver overhead and power draw!
     const barCount = 48;
-    const radius = 6.8;
+    this.barCount = barCount;
+    this.equalizerRadius = 6.8;
     const barGeo = new THREE.BoxGeometry(0.12, 1, 0.12);
+    const barMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.85,
+      blending: THREE.AdditiveBlending
+    });
+
+    this.equalizerInstancedMesh = new THREE.InstancedMesh(barGeo, barMat, barCount);
+    this.equalizerInstancedMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+
+    this._barDummy = new THREE.Object3D();
+    this._barScales = new Float32Array(barCount);
+    this._barAngles = new Float32Array(barCount);
 
     for (let i = 0; i < barCount; i++) {
       const angle = (i / barCount) * Math.PI * 2;
+      this._barAngles[i] = angle;
+      this._barScales[i] = 0.1;
       const hue = i / barCount;
       const col = new THREE.Color().setHSL(0.85 - hue * 0.45, 0.9, 0.6);
+      this.equalizerInstancedMesh.setColorAt(i, col);
 
-      const mat = new THREE.MeshBasicMaterial({
-        color: col,
-        transparent: true,
-        opacity: 0.85,
-        blending: THREE.AdditiveBlending
-      });
-      const bar = new THREE.Mesh(barGeo, mat);
-      bar.position.x = Math.sin(angle) * radius;
-      bar.position.z = Math.cos(angle) * radius;
-      bar.position.y = 0.5;
-      bar.scale.y = 0.1;
-      this.scene.add(bar);
-      this.equalizerBars.push(bar);
+      this._barDummy.position.set(Math.sin(angle) * this.equalizerRadius, 0.05, Math.cos(angle) * this.equalizerRadius);
+      this._barDummy.scale.set(1, 0.1, 1);
+      this._barDummy.updateMatrix();
+      this.equalizerInstancedMesh.setMatrixAt(i, this._barDummy.matrix);
     }
+
+    if (this.equalizerInstancedMesh.instanceColor) {
+      this.equalizerInstancedMesh.instanceColor.needsUpdate = true;
+    }
+    this.equalizerInstancedMesh.instanceMatrix.needsUpdate = true;
+    this.scene.add(this.equalizerInstancedMesh);
   }
 
   setupSpotlights() {
@@ -188,44 +203,50 @@ export class StageLighting {
       }
     }
 
-    const numBars = this.equalizerBars.length;
-    for (let i = 0; i < numBars; i++) {
-      const bar = this.equalizerBars[i];
-      let targetScale = 0.08;
+    // 2. Update Equalizer pillars in a single batch (1 draw call!)
+    if (this.equalizerInstancedMesh) {
+      const numBars = this.barCount;
+      for (let i = 0; i < numBars; i++) {
+        let targetScale = 0.08;
 
-      if (isPlaying) {
-        if (hasLiveFft) {
-          const freqIdx = Math.floor((i / numBars) * (freqData.length * 0.45));
-          const val = (freqData[freqIdx] || 0) / 255.0;
-          targetScale = Math.max(0.12, Math.pow(val, 1.2) * 3.8 + bass * 1.5);
+        if (isPlaying) {
+          if (hasLiveFft) {
+            const freqIdx = Math.floor((i / numBars) * (freqData.length * 0.45));
+            const val = (freqData[freqIdx] || 0) / 255.0;
+            targetScale = Math.max(0.12, Math.pow(val, 1.2) * 3.8 + bass * 1.5);
+          } else {
+            // Dynamic kinetic spectrum mapped to 48 pillars around stage
+            const normPos = Math.abs(i - numBars / 2) / (numBars / 2);
+            const bassWave = Math.sin(time * 12 + i * 0.45) * 0.35 + 0.65;
+            const bassPillar = Math.pow(bass, 1.4) * 3.5 * (1.0 - normPos * 0.3) * bassWave;
+
+            const midWave = Math.sin(time * 16 + i * 0.75) * 0.35 + 0.65;
+            const midPillar = Math.pow(mid, 1.3) * 2.6 * (0.3 + normPos * 0.7) * midWave;
+
+            const highWave = Math.sin(time * 26 + i * 1.2) * 0.4 + 0.6;
+            const highPillar = high * 1.6 * highWave;
+
+            targetScale = Math.max(0.12, (bassPillar + midPillar + highPillar) * 1.3);
+          }
         } else {
-          // Dynamic kinetic spectrum mapped to 48 pillars around stage
-          const normPos = Math.abs(i - numBars / 2) / (numBars / 2);
-          const bassWave = Math.sin(time * 12 + i * 0.45) * 0.35 + 0.65;
-          const bassPillar = Math.pow(bass, 1.4) * 3.5 * (1.0 - normPos * 0.3) * bassWave;
-
-          const midWave = Math.sin(time * 16 + i * 0.75) * 0.35 + 0.65;
-          const midPillar = Math.pow(mid, 1.3) * 2.6 * (0.3 + normPos * 0.7) * midWave;
-
-          const highWave = Math.sin(time * 26 + i * 1.2) * 0.4 + 0.6;
-          const highPillar = high * 1.6 * highWave;
-
-          targetScale = Math.max(0.12, (bassPillar + midPillar + highPillar) * 1.3);
+          // Idle gentle breathing wave
+          targetScale = 0.08 + Math.sin(time * 2 + i * 0.3) * 0.03;
         }
 
-        // Glow & opacity modulation during loud music
-        if (bar.material) {
-          const loudnessBoost = Math.min(1.0, bass * 0.8 + mid * 0.4);
-          bar.material.opacity = Math.min(1.0, 0.7 + loudnessBoost * 0.3);
-        }
-      } else {
-        // Idle gentle breathing wave
-        targetScale = 0.08 + Math.sin(time * 2 + i * 0.3) * 0.03;
-        if (bar.material) bar.material.opacity = 0.5;
+        this._barScales[i] += (targetScale - this._barScales[i]) * 0.35;
+        const currentScaleY = this._barScales[i];
+        const angle = this._barAngles[i];
+
+        this._barDummy.position.set(
+          Math.sin(angle) * this.equalizerRadius,
+          currentScaleY * 0.5,
+          Math.cos(angle) * this.equalizerRadius
+        );
+        this._barDummy.scale.set(1, currentScaleY, 1);
+        this._barDummy.updateMatrix();
+        this.equalizerInstancedMesh.setMatrixAt(i, this._barDummy.matrix);
       }
-
-      bar.scale.y += (targetScale - bar.scale.y) * 0.35;
-      bar.position.y = bar.scale.y * 0.5;
+      this.equalizerInstancedMesh.instanceMatrix.needsUpdate = true;
     }
 
     // 3. Move spotlights smoothly

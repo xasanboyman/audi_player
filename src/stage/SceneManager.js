@@ -38,15 +38,28 @@ export class SceneManager {
     this.camera = new THREE.PerspectiveCamera(42, this.width / this.height, 0.1, 50);
     this.camera.position.set(0, 1.45, 4.2);
 
+    // Laptop & Battery Thermal Optimization:
+    // Cap initial pixel ratio to 1.0 on standard displays or 1.15 on high-DPI
+    // Eliminates massive multi-million pixel rasterization overload on laptop integrated GPUs (Intel Iris/UHD, AMD Vega)
+    this.targetDpr = Math.min(window.devicePixelRatio || 1, 1.15);
+    this.currentDpr = this.targetDpr;
+
     this.renderer = new THREE.WebGLRenderer({
       antialias: true,
-      powerPreference: 'high-performance'
+      powerPreference: 'high-performance',
+      precision: 'mediump'
     });
     this.renderer.setSize(this.width, this.height);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+    this.renderer.setPixelRatio(this.currentDpr);
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.15;
     this.renderer.shadowMap.enabled = false;
+
+    // Performance monitor for dynamic resolution scaling
+    this._frameHistory = [];
+    this._dprCheckTimer = 0;
+    this._lastRenderTime = 0;
+    this.isTabVisible = !document.hidden;
 
     this.container.appendChild(this.renderer.domElement);
 
@@ -155,6 +168,9 @@ export class SceneManager {
 
   setupEvents() {
     window.addEventListener('resize', () => this.onResize());
+    document.addEventListener('visibilitychange', () => {
+      this.isTabVisible = !document.hidden;
+    });
   }
 
   onResize() {
@@ -171,13 +187,47 @@ export class SceneManager {
 
   render() {
     const now = performance.now();
-    const rawDelta = Math.min((now - this.lastFrameTime) * 0.001, 0.05);
+
+    // 1. Laptop Thermal & Battery Saver: Skip rendering when browser tab is hidden in background
+    if (document.hidden) {
+      this.audioEngine.update();
+      return;
+    }
+
+    // 2. Idle Power Saving Mode: Throttle to 30fps when music is paused to keep laptops cool
+    const isPlaying = this.audioEngine.isPlaying;
+    if (!isPlaying && (now - this._lastRenderTime < 32.0)) {
+      return;
+    }
+    this._lastRenderTime = now;
+
+    const rawDelta = Math.min((now - this.lastFrameTime) * 0.001, 0.033);
     this.lastFrameTime = now;
     this.smoothedDelta = this.smoothedDelta 
       ? THREE.MathUtils.lerp(this.smoothedDelta, rawDelta, 0.20) 
       : 0.0166;
     const delta = this.smoothedDelta;
     const elapsedTime = (now - this.startTime) * 0.001;
+
+    // 3. Dynamic Resolution Scaling (DRS) for Laptop Performance Preservation
+    this._frameHistory.push(rawDelta);
+    if (this._frameHistory.length > 60) this._frameHistory.shift();
+    this._dprCheckTimer += rawDelta;
+
+    if (this._dprCheckTimer > 1.5 && this._frameHistory.length >= 30) {
+      this._dprCheckTimer = 0;
+      const avgDelta = this._frameHistory.reduce((a, b) => a + b, 0) / this._frameHistory.length;
+      // If laptop is struggling (> 22ms per frame / < 45 FPS), smoothly downscale pixel ratio
+      if (avgDelta > 0.022 && this.currentDpr > 0.75) {
+        this.currentDpr = Math.max(0.75, this.currentDpr - 0.15);
+        this.renderer.setPixelRatio(this.currentDpr);
+      } 
+      // If laptop has headroom (< 14ms per frame / > 70 FPS), gently restore toward targetDpr
+      else if (avgDelta < 0.014 && this.currentDpr < this.targetDpr) {
+        this.currentDpr = Math.min(this.targetDpr, this.currentDpr + 0.10);
+        this.renderer.setPixelRatio(this.currentDpr);
+      }
+    }
 
     // 1. Update Audio Analysis
     this.audioEngine.update();
