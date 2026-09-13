@@ -294,9 +294,9 @@ app.get('/api/tracks', (req, res) => {
         artist: 'Cyber Funk',
         file: '/tracks/brawl_stars_phonk.mp3',
         fileName: 'brawl_stars_phonk.mp3',
-        bpm: 143.6,
-        duration: 98,
-        analysis: { bpm: 143.6, duration: 98, beats: [] }
+        bpm: 99.4,
+        duration: 110.36,
+        analysis: { bpm: 99.4, duration: 110.36, beats: [] }
       },
       {
         id: 'cyber_phonk_140',
@@ -304,9 +304,9 @@ app.get('/api/tracks', (req, res) => {
         artist: 'GhostxBlade',
         file: '/tracks/cyber_phonk_140.mp3',
         fileName: 'cyber_phonk_140.mp3',
-        bpm: 140,
-        duration: 41,
-        analysis: { bpm: 140, duration: 41, beats: [] }
+        bpm: 140.0,
+        duration: 45.0,
+        analysis: { bpm: 140.0, duration: 45.0, beats: [] }
       },
       {
         id: 'future_idol_128',
@@ -314,9 +314,9 @@ app.get('/api/tracks', (req, res) => {
         artist: 'K-Pop AI Studio',
         file: '/tracks/future_idol_128.mp3',
         fileName: 'future_idol_128.mp3',
-        bpm: 128,
-        duration: 45,
-        analysis: { bpm: 128, duration: 45, beats: [] }
+        bpm: 128.0,
+        duration: 45.0,
+        analysis: { bpm: 128.0, duration: 45.0, beats: [] }
       }
     ]
   });

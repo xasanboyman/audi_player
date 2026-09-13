@@ -7,56 +7,56 @@ import * as THREE from 'three';
  */
 export const AUTHENTIC_DANCE_LIBRARY = [
   // 1. High-Energy & Idol Arm Gestures (Matching user screencast!)
-  { id: 'dance_arms_hiphop', title: 'Idol Pop & Arm Flow', type: 'retargeted', url: '/mocap/retargeted/dance_arms_hiphop.json', style: 'idol', energy: 0.88, isHighEnergy: true },
-  { id: 'dance_tut_hiphop', title: 'Finger Tutting & Geometry', type: 'retargeted', url: '/mocap/retargeted/dance_tut_hiphop.json', style: 'idol', energy: 0.82, isHighEnergy: true },
-  { id: 'dance_booty_hiphop', title: 'Idol Bounce & Hips Rhythm', type: 'retargeted', url: '/mocap/retargeted/dance_booty_hiphop.json', style: 'idol', energy: 0.88, isHighEnergy: true },
-  { id: 'dance_wave_hiphop', title: 'Body Wave & Arm Flow', type: 'retargeted', url: '/mocap/retargeted/dance_wave_hiphop.json', style: 'groove', energy: 0.80, isHighEnergy: false },
-  { id: 'arm_stretching_gretaa', title: 'Gretaa Sensual Flow & Stretch', type: 'fbx', url: '/mocap/Arm_Stretching_Gretaa.fbx', style: 'expressive', energy: 0.75, isHighEnergy: false },
-  { id: 'hiphop_dancing_mixamo', title: 'Street Hip Hop Master', type: 'fbx', url: '/mocap/HipHopDancing_Mixamo.fbx', style: 'phonk', energy: 0.92, isHighEnergy: true },
-  { id: 'girl_dance_groove', title: 'Girl Pop Groove', type: 'fbx', url: '/mocap/Girl_Dance_Groove.fbx', style: 'idol', energy: 0.84, isHighEnergy: true },
-  { id: 'rumba_dancing_mixamo', title: 'Sensual Rumba Flow', type: 'fbx', url: '/mocap/Rumba_Dancing_Mixamo.fbx', style: 'chill', energy: 0.60, isHighEnergy: false },
+  { id: 'dance_arms_hiphop', title: 'Idol Pop & Arm Flow', type: 'retargeted', url: '/mocap/retargeted/dance_arms_hiphop.json', style: 'idol', energy: 0.88, isHighEnergy: true, nativeBpm: 88.7, phraseBeats: 32 },
+  { id: 'dance_tut_hiphop', title: 'Finger Tutting & Geometry', type: 'retargeted', url: '/mocap/retargeted/dance_tut_hiphop.json', style: 'idol', energy: 0.82, isHighEnergy: true, nativeBpm: 111.8, phraseBeats: 32 },
+  { id: 'dance_booty_hiphop', title: 'Idol Bounce & Hips Rhythm', type: 'retargeted', url: '/mocap/retargeted/dance_booty_hiphop.json', style: 'idol', energy: 0.88, isHighEnergy: true, nativeBpm: 130.4, phraseBeats: 8 },
+  { id: 'dance_wave_hiphop', title: 'Body Wave & Arm Flow', type: 'retargeted', url: '/mocap/retargeted/dance_wave_hiphop.json', style: 'groove', energy: 0.80, isHighEnergy: false, nativeBpm: 96.2, phraseBeats: 24 },
+  { id: 'arm_stretching_gretaa', title: 'Gretaa Sensual Flow & Stretch', type: 'fbx', url: '/mocap/Arm_Stretching_Gretaa.fbx', style: 'expressive', energy: 0.75, isHighEnergy: false, nativeBpm: 109.9, phraseBeats: 16 },
+  { id: 'hiphop_dancing_mixamo', title: 'Street Hip Hop Master', type: 'fbx', url: '/mocap/HipHopDancing_Mixamo.fbx', style: 'phonk', energy: 0.92, isHighEnergy: true, nativeBpm: 135.2, phraseBeats: 40 },
+  { id: 'girl_dance_groove', title: 'Girl Pop Groove', type: 'fbx', url: '/mocap/Girl_Dance_Groove.fbx', style: 'idol', energy: 0.84, isHighEnergy: true, nativeBpm: 103.3, phraseBeats: 14 },
+  { id: 'rumba_dancing_mixamo', title: 'Sensual Rumba Flow', type: 'fbx', url: '/mocap/Rumba_Dancing_Mixamo.fbx', style: 'chill', energy: 0.60, isHighEnergy: false, nativeBpm: 100.0, phraseBeats: 4 },
 
   // 2. Breakdance & Floor Bending Moves
-  { id: 'breakdance_ending', title: 'Floor B-Boy Freeze & Drop', type: 'fbx', url: '/mocap/Breakdance_Ending_Floor.fbx', style: 'bending', energy: 0.94, isHighEnergy: true },
-  { id: 'breakdance_freeze_3', title: 'Power Freeze & Ground Spin', type: 'fbx', url: '/mocap/Ch24_nonPBR@Breakdance Freeze Var 3.fbx', style: 'bending', energy: 0.95, isHighEnergy: true },
-  { id: 'breakdance_flair', title: 'Acrobatic Gymnastic Flair', type: 'fbx', url: '/mocap/Ch24_nonPBR@Flair.fbx', style: 'bending', energy: 0.98, isHighEnergy: true },
-  { id: 'dance_breakdance_1990', title: '1990 Headspin & Ground Spin', type: 'retargeted', url: '/mocap/retargeted/dance_breakdance_1990.json', style: 'bending', energy: 0.96, isHighEnergy: true },
-  { id: 'dance_breakdance_uprock', title: 'Uprock Battle Steps', type: 'retargeted', url: '/mocap/retargeted/dance_breakdance_uprock.json', style: 'phonk', energy: 0.94, isHighEnergy: true },
-  { id: 'dance_capoeira', title: 'Acrobatic Sweep & Ginga', type: 'retargeted', url: '/mocap/retargeted/dance_capoeira.json', style: 'bending', energy: 0.88, isHighEnergy: true },
+  { id: 'breakdance_ending', title: 'Floor B-Boy Freeze & Drop', type: 'fbx', url: '/mocap/Breakdance_Ending_Floor.fbx', style: 'bending', energy: 0.94, isHighEnergy: true, nativeBpm: 92.6, phraseBeats: 10 },
+  { id: 'breakdance_freeze_3', title: 'Power Freeze & Ground Spin', type: 'fbx', url: '/mocap/Ch24_nonPBR@Breakdance Freeze Var 3.fbx', style: 'bending', energy: 0.95, isHighEnergy: true, nativeBpm: 70.1, phraseBeats: 8 },
+  { id: 'breakdance_flair', title: 'Acrobatic Gymnastic Flair', type: 'fbx', url: '/mocap/Ch24_nonPBR@Flair.fbx', style: 'bending', energy: 0.98, isHighEnergy: true, nativeBpm: 120.0, phraseBeats: 8 },
+  { id: 'dance_breakdance_1990', title: '1990 Headspin & Ground Spin', type: 'retargeted', url: '/mocap/retargeted/dance_breakdance_1990.json', style: 'bending', energy: 0.96, isHighEnergy: true, nativeBpm: 132.4, phraseBeats: 8 },
+  { id: 'dance_breakdance_uprock', title: 'Uprock Battle Steps', type: 'retargeted', url: '/mocap/retargeted/dance_breakdance_uprock.json', style: 'phonk', energy: 0.94, isHighEnergy: true, nativeBpm: 121.8, phraseBeats: 10 },
+  { id: 'dance_capoeira', title: 'Acrobatic Sweep & Ginga', type: 'retargeted', url: '/mocap/retargeted/dance_capoeira.json', style: 'bending', energy: 0.88, isHighEnergy: true, nativeBpm: 98.6, phraseBeats: 6 },
 
   // 3. Energetic Dance Routines (Dance01 - Dance06)
-  { id: 'dance_mixamo_01', title: 'Energetic Dance Routine 1', type: 'fbx', url: '/mocap/Dance01.fbx', style: 'idol', energy: 0.89, isHighEnergy: true },
-  { id: 'dance_mixamo_02', title: 'Dynamic Hip Hop Routine 2', type: 'fbx', url: '/mocap/Dance02.fbx', style: 'phonk', energy: 0.91, isHighEnergy: true },
-  { id: 'dance_mixamo_03', title: 'Locking Wave Routine 3', type: 'fbx', url: '/mocap/Dance03.fbx', style: 'groove', energy: 0.87, isHighEnergy: true },
-  { id: 'dance_mixamo_04', title: 'High Bounce Funk Routine 4', type: 'fbx', url: '/mocap/Dance04.fbx', style: 'phonk', energy: 0.93, isHighEnergy: true },
-  { id: 'dance_mixamo_05', title: 'Floor & Drop Routine 5', type: 'fbx', url: '/mocap/Dance05.fbx', style: 'bending', energy: 0.90, isHighEnergy: true },
-  { id: 'dance_mixamo_06', title: 'Pop Star Solo Routine 6', type: 'fbx', url: '/mocap/Dance06.fbx', style: 'idol', energy: 0.88, isHighEnergy: true },
+  { id: 'dance_mixamo_01', title: 'Energetic Dance Routine 1', type: 'fbx', url: '/mocap/Dance01.fbx', style: 'idol', energy: 0.89, isHighEnergy: true, nativeBpm: 111.1, phraseBeats: 32 },
+  { id: 'dance_mixamo_02', title: 'Dynamic Hip Hop Routine 2', type: 'fbx', url: '/mocap/Dance02.fbx', style: 'phonk', energy: 0.91, isHighEnergy: true, nativeBpm: 120.0, phraseBeats: 8 },
+  { id: 'dance_mixamo_03', title: 'Locking Wave Routine 3', type: 'fbx', url: '/mocap/Dance03.fbx', style: 'groove', energy: 0.87, isHighEnergy: true, nativeBpm: 115.0, phraseBeats: 8 },
+  { id: 'dance_mixamo_04', title: 'High Bounce Funk Routine 4', type: 'fbx', url: '/mocap/Dance04.fbx', style: 'phonk', energy: 0.93, isHighEnergy: true, nativeBpm: 95.8, phraseBeats: 16 },
+  { id: 'dance_mixamo_05', title: 'Floor & Drop Routine 5', type: 'fbx', url: '/mocap/Dance05.fbx', style: 'bending', energy: 0.90, isHighEnergy: true, nativeBpm: 106.3, phraseBeats: 20 },
+  { id: 'dance_mixamo_06', title: 'Pop Star Solo Routine 6', type: 'fbx', url: '/mocap/Dance06.fbx', style: 'idol', energy: 0.88, isHighEnergy: true, nativeBpm: 94.7, phraseBeats: 10 },
 
   // 4. Urban & Club Grooves
-  { id: 'dance_step_hiphop', title: 'Rhythm Bounce & Footwork', type: 'retargeted', url: '/mocap/retargeted/dance_step_hiphop.json', style: 'phonk', energy: 0.90, isHighEnergy: true },
-  { id: 'dance_hiphop', title: 'Urban Hip Hop Routine', type: 'retargeted', url: '/mocap/retargeted/dance_hiphop.json', style: 'groove', energy: 0.84, isHighEnergy: true },
-  { id: 'house_dance', title: 'House Step & Shuffle', type: 'fbx', url: '/mocap/Ch24_nonPBR@House Dancing.fbx', style: 'phonk', energy: 0.92, isHighEnergy: true },
-  { id: 'locking_dance', title: 'Funk Locking & Pointing', type: 'fbx', url: '/mocap/Ch24_nonPBR@Locking Hip Hop Dance.fbx', style: 'groove', energy: 0.86, isHighEnergy: true },
-  { id: 'samba_dance', title: 'Carnival Samba Rhythm', type: 'fbx', url: '/mocap/Samba Dancing.fbx', style: 'groove', energy: 0.85, isHighEnergy: false },
-  { id: 'dance_samba_retarget', title: 'Fast Samba Steps', type: 'retargeted', url: '/mocap/retargeted/dance_samba.json', style: 'groove', energy: 0.85, isHighEnergy: false },
-  { id: 'swing_dance', title: 'Classic Swing Jive', type: 'fbx', url: '/mocap/Ch24_nonPBR@Swing Dancing.fbx', style: 'groove', energy: 0.80, isHighEnergy: false },
-  { id: 'hiphop_dance_2', title: 'Hip Hop Street Flare', type: 'fbx', url: '/mocap/HipHopDance.fbx', style: 'phonk', energy: 0.88, isHighEnergy: true },
-  { id: 'thriller_routine_3', title: 'Thriller Master Routine', type: 'fbx', url: '/mocap/Ch24_nonPBR@Thriller Part 3.fbx', style: 'groove', energy: 0.82, isHighEnergy: false },
-  { id: 'dance_thriller', title: 'Thriller Zombie Groove', type: 'retargeted', url: '/mocap/retargeted/dance_thriller.json', style: 'groove', energy: 0.76, isHighEnergy: false },
+  { id: 'dance_step_hiphop', title: 'Rhythm Bounce & Footwork', type: 'retargeted', url: '/mocap/retargeted/dance_step_hiphop.json', style: 'phonk', energy: 0.90, isHighEnergy: true, nativeBpm: 155.5, phraseBeats: 20 },
+  { id: 'dance_hiphop', title: 'Urban Hip Hop Routine', type: 'retargeted', url: '/mocap/retargeted/dance_hiphop.json', style: 'groove', energy: 0.84, isHighEnergy: true, nativeBpm: 105.0, phraseBeats: 8 },
+  { id: 'house_dance', title: 'House Step & Shuffle', type: 'fbx', url: '/mocap/Ch24_nonPBR@House Dancing.fbx', style: 'phonk', energy: 0.92, isHighEnergy: true, nativeBpm: 148.0, phraseBeats: 48 },
+  { id: 'locking_dance', title: 'Funk Locking & Pointing', type: 'fbx', url: '/mocap/Ch24_nonPBR@Locking Hip Hop Dance.fbx', style: 'groove', energy: 0.86, isHighEnergy: true, nativeBpm: 116.0, phraseBeats: 32 },
+  { id: 'samba_dance', title: 'Carnival Samba Rhythm', type: 'fbx', url: '/mocap/Samba Dancing.fbx', style: 'groove', energy: 0.85, isHighEnergy: false, nativeBpm: 111.7, phraseBeats: 34 },
+  { id: 'dance_samba_retarget', title: 'Fast Samba Steps', type: 'retargeted', url: '/mocap/retargeted/dance_samba.json', style: 'groove', energy: 0.85, isHighEnergy: false, nativeBpm: 111.7, phraseBeats: 34 },
+  { id: 'swing_dance', title: 'Classic Swing Jive', type: 'fbx', url: '/mocap/Ch24_nonPBR@Swing Dancing.fbx', style: 'groove', energy: 0.80, isHighEnergy: false, nativeBpm: 139.8, phraseBeats: 56 },
+  { id: 'hiphop_dance_2', title: 'Hip Hop Street Flare', type: 'fbx', url: '/mocap/HipHopDance.fbx', style: 'phonk', energy: 0.88, isHighEnergy: true, nativeBpm: 103.3, phraseBeats: 14 },
+  { id: 'thriller_routine_3', title: 'Thriller Master Routine', type: 'fbx', url: '/mocap/Ch24_nonPBR@Thriller Part 3.fbx', style: 'groove', energy: 0.82, isHighEnergy: false, nativeBpm: 113.8, phraseBeats: 48 },
+  { id: 'dance_thriller', title: 'Thriller Zombie Groove', type: 'retargeted', url: '/mocap/retargeted/dance_thriller.json', style: 'groove', energy: 0.76, isHighEnergy: false, nativeBpm: 118.6, phraseBeats: 48 },
 
   // 5. Expressive, Flow & Fun
-  { id: 'arm_stretching_flow', title: 'Idol Arm Flow & Stretch', type: 'fbx', url: '/mocap/Arm_Stretching_Flow.fbx', style: 'expressive', energy: 0.70, isHighEnergy: false },
-  { id: 'dance_twist', title: 'Pop Twist Groove', type: 'retargeted', url: '/mocap/retargeted/dance_twist.json', style: 'groove', energy: 0.78, isHighEnergy: false },
-  { id: 'dance_snake_hiphop', title: 'Sensual Snake Wave', type: 'retargeted', url: '/mocap/retargeted/dance_snake_hiphop.json', style: 'expressive', energy: 0.72, isHighEnergy: false },
-  { id: 'dance_party', title: 'Party Jump & Bounce', type: 'retargeted', url: '/mocap/retargeted/dance_party.json', style: 'energetic', energy: 0.86, isHighEnergy: true },
-  { id: 'dance_silly', title: 'Playful Anime Idol Bounce', type: 'retargeted', url: '/mocap/retargeted/dance_silly.json', style: 'idol', energy: 0.78, isHighEnergy: false },
-  { id: 'dance_ymca', title: 'High Overhead Poses', type: 'retargeted', url: '/mocap/retargeted/dance_ymca.json', style: 'expressive', energy: 0.76, isHighEnergy: false },
-  { id: 'dance_rumba', title: 'Smooth Latin Sway', type: 'retargeted', url: '/mocap/retargeted/dance_rumba.json', style: 'chill', energy: 0.55, isHighEnergy: false },
-  { id: 'dance_jazz', title: 'Broadway Jazz Kicks', type: 'retargeted', url: '/mocap/retargeted/dance_jazz.json', style: 'groove', energy: 0.74, isHighEnergy: false },
-  { id: 'dance_belly', title: 'Ribcage & Hip Isolation', type: 'retargeted', url: '/mocap/retargeted/dance_belly.json', style: 'expressive', energy: 0.70, isHighEnergy: false },
-  { id: 'hip_hop_dancing_gretaa', title: 'Sensational Hip Hop Groove', type: 'fbx', url: '/mocap/Hip_Hop_Dancing_Gretaa.fbx', style: 'phonk', energy: 0.93, isHighEnergy: true },
-  { id: 'dance_pop_groove', title: 'Electro Pop Star Groove', type: 'fbx', url: '/mocap/Dance_Pop_Groove.fbx', style: 'idol', energy: 0.89, isHighEnergy: true },
-  { id: 'dance_mixamo_classic', title: 'Classic Mixamo Dance 1', type: 'fbx', url: '/mocap/Dance1_Mixamo.fbx', style: 'groove', energy: 0.85, isHighEnergy: true }
+  { id: 'arm_stretching_flow', title: 'Idol Arm Flow & Stretch', type: 'fbx', url: '/mocap/Arm_Stretching_Flow.fbx', style: 'expressive', energy: 0.70, isHighEnergy: false, nativeBpm: 109.9, phraseBeats: 16 },
+  { id: 'dance_twist', title: 'Pop Twist Groove', type: 'retargeted', url: '/mocap/retargeted/dance_twist.json', style: 'groove', energy: 0.78, isHighEnergy: false, nativeBpm: 161.7, phraseBeats: 24 },
+  { id: 'dance_snake_hiphop', title: 'Sensual Snake Wave', type: 'retargeted', url: '/mocap/retargeted/dance_snake_hiphop.json', style: 'expressive', energy: 0.72, isHighEnergy: false, nativeBpm: 84.7, phraseBeats: 20 },
+  { id: 'dance_party', title: 'Party Jump & Bounce', type: 'retargeted', url: '/mocap/retargeted/dance_party.json', style: 'energetic', energy: 0.86, isHighEnergy: true, nativeBpm: 128.6, phraseBeats: 8 },
+  { id: 'dance_silly', title: 'Playful Anime Idol Bounce', type: 'retargeted', url: '/mocap/retargeted/dance_silly.json', style: 'idol', energy: 0.78, isHighEnergy: false, nativeBpm: 128.6, phraseBeats: 8 },
+  { id: 'dance_ymca', title: 'High Overhead Poses', type: 'retargeted', url: '/mocap/retargeted/dance_ymca.json', style: 'expressive', energy: 0.76, isHighEnergy: false, nativeBpm: 105.0, phraseBeats: 8 },
+  { id: 'dance_rumba', title: 'Smooth Latin Sway', type: 'retargeted', url: '/mocap/retargeted/dance_rumba.json', style: 'chill', energy: 0.55, isHighEnergy: false, nativeBpm: 100.0, phraseBeats: 4 },
+  { id: 'dance_jazz', title: 'Broadway Jazz Kicks', type: 'retargeted', url: '/mocap/retargeted/dance_jazz.json', style: 'groove', energy: 0.74, isHighEnergy: false, nativeBpm: 133.8, phraseBeats: 12 },
+  { id: 'dance_belly', title: 'Ribcage & Hip Isolation', type: 'retargeted', url: '/mocap/retargeted/dance_belly.json', style: 'expressive', energy: 0.70, isHighEnergy: false, nativeBpm: 72.3, phraseBeats: 30 },
+  { id: 'hip_hop_dancing_gretaa', title: 'Sensational Hip Hop Groove', type: 'fbx', url: '/mocap/Hip_Hop_Dancing_Gretaa.fbx', style: 'phonk', energy: 0.93, isHighEnergy: true, nativeBpm: 135.2, phraseBeats: 40 },
+  { id: 'dance_pop_groove', title: 'Electro Pop Star Groove', type: 'fbx', url: '/mocap/Dance_Pop_Groove.fbx', style: 'idol', energy: 0.89, isHighEnergy: true, nativeBpm: 135.3, phraseBeats: 12 },
+  { id: 'dance_mixamo_classic', title: 'Classic Mixamo Dance 1', type: 'fbx', url: '/mocap/Dance1_Mixamo.fbx', style: 'groove', energy: 0.85, isHighEnergy: true, nativeBpm: 135.3, phraseBeats: 12 }
 ];
 
 export const IDLE_PERFORMANCES = {
@@ -510,6 +510,26 @@ export class DanceEngine {
   }
 
   /**
+   * Kinematic Tempo Scaler:
+   * Maps authentic motion recording tempo (nativeBpm) to the music tempo (musicBpm)
+   * with harmonic octave adjustment (half-time / double-time matching) so dancers
+   * step and bounce in 100% exact synchronization with the song's beat.
+   */
+  calcTempo(clip, perfMeta) {
+    if (!clip || !clip.duration) return 1.0;
+    const musicBpm = Math.max(60, Math.min(220, this.audioEngine.bpm || 120));
+    const nativeBpm = perfMeta?.nativeBpm || 110;
+
+    let ratio = musicBpm / nativeBpm;
+    // Harmonic octave adjustment (half-time or double-time)
+    while (ratio < 0.72) ratio *= 2.0;
+    while (ratio > 1.45) ratio *= 0.5;
+
+    // Keep mocap natural and human while locking to the beat
+    return Math.max(0.75, Math.min(1.35, ratio));
+  }
+
+  /**
    * Crossfades dual dancers into the next choreography with C2 Hermite smoothness.
    */
   async selectNextChoreography(isInitial = false) {
@@ -531,19 +551,8 @@ export class DanceEngine {
       partnerPerf = this.selectHarmonizedPartner(leadPerf);
     }
 
-    // Tempo alignment: synchronize forward-and-reverse ping-pong cycle to musical phrase
     const bpm = this.audioEngine.bpm || 120;
     const beatPeriod = 60.0 / bpm; // duration of 1 beat in seconds
-
-    const calcTempo = (clip) => {
-      if (!clip || !clip.duration) return 1.0;
-      // Quantize animation duration to the nearest integer musical beats
-      const naturalBeats = Math.max(4, Math.round(clip.duration / beatPeriod));
-      const idealDuration = naturalBeats * beatPeriod;
-      const rawScale = clip.duration / idealDuration;
-      // Clamp between 0.85 and 1.25 to keep mocap natural and human while locking to the beat
-      return Math.max(0.85, Math.min(1.25, rawScale));
-    };
 
     // Musical crossfade duration:
     // Floor moves and standing up use a smooth 1.35s transition for natural rising without snapping
@@ -586,14 +595,14 @@ export class DanceEngine {
 
     this.currentPerformanceLead = leadPerf;
     if (clipLead && this.dancerLead) {
-      const tempoScaleLead = calcTempo(clipLead);
+      const tempoScaleLead = this.calcTempo(clipLead, leadPerf);
       this.dancerLead.crossfadeToClip(clipLead, fadeDurationLead, tempoScaleLead);
     }
 
     if (this.dancerPartner && partnerPerf) {
       this.currentPerformancePartner = partnerPerf;
       if (clipPartner) {
-        const tempoScalePartner = calcTempo(clipPartner);
+        const tempoScalePartner = this.calcTempo(clipPartner, partnerPerf);
         this.dancerPartner.crossfadeToClip(clipPartner, fadeDurationPartner, tempoScalePartner);
       }
     }
@@ -628,13 +637,6 @@ export class DanceEngine {
     const fadeDurationLead = isFloorLead ? 1.35 : Math.max(0.70, Math.min(1.10, beatPeriod * 2.0));
     const fadeDurationPartner = isFloorPartner ? 1.35 : Math.max(0.70, Math.min(1.10, beatPeriod * 2.0));
 
-    const calcTempo = (clip) => {
-      if (!clip || !clip.duration) return 1.0;
-      const naturalBeats = Math.max(4, Math.round(clip.duration / beatPeriod));
-      const idealDuration = naturalBeats * beatPeriod;
-      return Math.max(0.85, Math.min(1.22, clip.duration / idealDuration));
-    };
-
     const [clipLead, clipPartner] = await Promise.all([
       this.dancerLead ? this.getOrLoadClip(perf, this.dancerLead) : Promise.resolve(null),
       (this.dancerPartner && partnerPerf) ? this.getOrLoadClip(partnerPerf, this.dancerPartner) : Promise.resolve(null)
@@ -642,10 +644,10 @@ export class DanceEngine {
     if (seq !== this._choreographySeq) return;
 
     if (clipLead && this.dancerLead) {
-      this.dancerLead.crossfadeToClip(clipLead, fadeDurationLead, calcTempo(clipLead));
+      this.dancerLead.crossfadeToClip(clipLead, fadeDurationLead, this.calcTempo(clipLead, perf));
     }
     if (clipPartner && this.dancerPartner) {
-      this.dancerPartner.crossfadeToClip(clipPartner, fadeDurationPartner, calcTempo(clipPartner));
+      this.dancerPartner.crossfadeToClip(clipPartner, fadeDurationPartner, this.calcTempo(clipPartner, partnerPerf));
     }
     console.log(`💃 Harmonized Performance -> Lead: [${perf.title}] | Partner: [${partnerPerf.title}]`);
   }
@@ -708,20 +710,26 @@ export class DanceEngine {
       this.beatBounceVelocity += acc * delta;
       this.beatBounce += this.beatBounceVelocity * delta;
 
-      // Calculate musical rhythm groove state (beat-locked bounce, lateral sway, head nod)
+      // Calculate musical rhythm groove state with ground-truth kick drum beat locking
       const bpm = this.audioEngine.bpm || 120;
       const beatPeriod = 60.0 / bpm;
       const bass = this.audioEngine.getBassEnergy();
       const songTime = this.audioEngine.currentTime;
-      const beatProgress = (songTime % beatPeriod) / beatPeriod;
+      // Exact beat progress [0.0, 1.0) with 0.0 anchored on the kick drum
+      const beatProgress = typeof this.audioEngine.getBeatProgress === 'function'
+        ? this.audioEngine.getBeatProgress()
+        : ((songTime % beatPeriod) / beatPeriod);
 
-      // Sinusoidal downbeat compression on kick drum
-      const downbeatDip = Math.sin(beatProgress * Math.PI) * (0.022 + bass * 0.030) * this.bounceIntensity;
-      // Rhythmic lateral hip sway over 2 beats
+      // Cosine downbeat compression: maximum knee bend & hip dip at beatProgress = 0.0 (on the beat!)
+      const bounceCurve = 0.5 * (1.0 + Math.cos(beatProgress * Math.PI * 2));
+      const downbeatDip = bounceCurve * (0.024 + bass * 0.032) * this.bounceIntensity;
+
+      // Rhythmic lateral hip sway over 2 beats (1 bar)
       const swayPeriod = beatPeriod * 2.0;
       const lateralSway = Math.sin((songTime / swayPeriod) * Math.PI * 2) * 0.016 * (0.6 + bass * 0.4);
-      // Subtle rhythmic head nod
-      const headNod = Math.sin(beatProgress * Math.PI * 2) * 0.035 * (0.7 + bass * 0.3);
+
+      // Downbeat head nod: nods forward on kick drum (beatProgress = 0.0)
+      const headNod = (Math.cos(beatProgress * Math.PI * 2)) * 0.038 * (0.7 + bass * 0.3);
 
       this.grooveState = {
         bounceY: downbeatDip,

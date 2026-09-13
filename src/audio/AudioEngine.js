@@ -303,6 +303,77 @@ export class AudioEngine {
   }
 
   /**
+   * Automatically loads accompanying .json ground-truth beat analysis if available.
+   */
+  async _loadTrackAnalysisJson(track) {
+    if (!track) return;
+    if (track.analysis?.beats && track.analysis.beats.length > 0 && !track.analysis.isSynthesized) {
+      this.bpm = track.analysis.bpm || track.bpm || this.bpm;
+      return;
+    }
+
+    const candidateUrls = [];
+    if (track.file && typeof track.file === 'string' && track.file.startsWith('/tracks/')) {
+      candidateUrls.push(track.file.replace(/\.[^/.]+$/, '.json'));
+    }
+    if (track.id) {
+      candidateUrls.push(`/tracks/${track.id}.json`);
+    }
+    if (track.fileName) {
+      candidateUrls.push(`/tracks/${track.fileName.replace(/\.[^/.]+$/, '.json')}`);
+    }
+
+    for (const url of candidateUrls) {
+      try {
+        const res = await fetch(url);
+        if (res.ok) {
+          const text = await res.text();
+          if (text && text.startsWith('{')) {
+            const data = JSON.parse(text);
+            if (data && data.bpm && Array.isArray(data.beats) && data.beats.length > 0) {
+              track.analysis = data;
+              track.bpm = data.bpm;
+              track.duration = data.duration || track.duration;
+              this.bpm = data.bpm;
+              this.duration = track.duration;
+              console.log(`🎯 Loaded ground-truth musical beat grid for [${track.title || track.id}]: ${data.beats.length} beats @ ${data.bpm} BPM`);
+              return;
+            }
+          }
+        }
+      } catch (e) {}
+    }
+  }
+
+  /**
+   * Returns exact musical beat phase progress [0.0, 1.0)
+   * where 0.0 is the exact millisecond of the kick drum / downbeat.
+   */
+  getBeatProgress() {
+    const beats = this.currentTrack?.analysis?.beats;
+    const t = this.currentTime;
+    if (beats && beats.length > 1) {
+      const idx = this.currentBeatIndex;
+      if (idx >= 0 && idx < beats.length - 1) {
+        const b0 = beats[idx];
+        const b1 = beats[idx + 1];
+        if (b1 > b0 && t >= b0 && t <= b1) {
+          return (t - b0) / (b1 - b0);
+        }
+      }
+      const firstBeat = beats[0] || 0;
+      const beatPeriod = 60.0 / (this.bpm || 120);
+      if (t < firstBeat) {
+        const diff = (firstBeat - t) % beatPeriod;
+        return (beatPeriod - diff) / beatPeriod;
+      }
+      return ((t - firstBeat) % beatPeriod) / beatPeriod;
+    }
+    const beatPeriod = 60.0 / (this.bpm || 120);
+    return (t % beatPeriod) / beatPeriod;
+  }
+
+  /**
    * Ensures every track (pre-loaded, uploaded, or searched open-source)
    * has a complete, high-precision musical beat grid and 4-bar/8-bar section structures.
    */
@@ -311,7 +382,7 @@ export class AudioEngine {
       track.analysis = {};
     }
     if (!track.analysis.bpm || track.analysis.bpm <= 0) {
-      track.analysis.bpm = track.bpm || 128;
+      track.analysis.bpm = track.bpm || 120;
     }
     this.bpm = track.analysis.bpm;
 
@@ -381,7 +452,9 @@ export class AudioEngine {
 
   async loadTrack(track) {
     this.currentTrack = track;
-    this.bpm = track.bpm || track.analysis?.bpm || 128;
+    // Load ground-truth analysis JSON if available
+    await this._loadTrackAnalysisJson(track);
+    this.bpm = track.bpm || track.analysis?.bpm || 120;
     this.currentBeatIndex = -1;
     this.currentSegment = null;
 
