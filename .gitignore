@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+
+# Environment and logs
+.env
+*.log
+npm-debug.log*
+yarn-debug.log*
+
+# Reference clones & external submodules
+MotionDataViewer/
+external_viewer/
+web_backend_ref/
+orchestrator_ref/
+
+# Raw unprocessed dataset archives (runtime uses motions_processed and external_mocap)
+motion_data/
+
+# User uploads
+uploads/*
+!uploads/.gitkeep
+
+# OS generated files
+.DS_Store
+Thumbs.db

@@ -1,0 +1,8 @@
+# CyberDance 3D - Python Dependencies
+playwright>=1.40.0
+playwright-stealth>=1.0.6
+yt-dlp>=2024.0.0
+librosa>=0.10.0
+numpy>=1.24.0
+scipy>=1.10.0
+soundfile>=0.12.0
