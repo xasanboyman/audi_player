@@ -667,7 +667,7 @@ export class Dancer {
       return;
     }
 
-    newAction.setLoop(THREE.LoopPingPong, Infinity);
+    newAction.setLoop(THREE.LoopRepeat, Infinity);
     newAction.clampWhenFinished = false;
 
     const prevAction = this.currentAction;
@@ -686,9 +686,13 @@ export class Dancer {
       }
     }
 
-    // Gracefully fade out previous action and uncache it once faded
+    newAction.reset();
+    newAction.setEffectiveTimeScale(timeScale);
+    newAction.setEffectiveWeight(1.0);
+
+    // Gracefully crossfade from previous action with time warping
     if (prevAction && prevAction.isRunning()) {
-      prevAction.fadeOut(fadeDuration);
+      newAction.crossFadeFrom(prevAction, fadeDuration, true);
       const clipToUncache = prevAction.getClip();
       setTimeout(() => {
         if (prevAction !== this.currentAction) {
@@ -698,15 +702,9 @@ export class Dancer {
             this.mixer?.uncacheAction(clipToUncache);
           } catch (e) {}
         }
-      }, Math.ceil(fadeDuration * 1000) + 60);
+      }, Math.ceil(fadeDuration * 1000) + 120);
     }
 
-    newAction.reset();
-    newAction.setEffectiveTimeScale(timeScale);
-    newAction.setEffectiveWeight(1.0);
-    if (prevAction && prevAction.isRunning()) {
-      newAction.fadeIn(fadeDuration);
-    }
     newAction.play();
 
     this.currentAction = newAction;
@@ -763,8 +761,8 @@ export class Dancer {
       if (isNaN(hips.position.x) || isNaN(hips.position.y) || isNaN(hips.position.z)) {
         hips.position.set(0, this.initialHipsY || 1.0, 0);
       } else {
-        // Prevent character sinking below stage floor
-        hips.position.y = Math.max(0.15, Math.min(2.2, hips.position.y));
+        // Prevent character sinking below stage floor while allowing floor spins
+        hips.position.y = Math.max(0.04, Math.min(2.2, hips.position.y));
         // Keep character on visible stage area
         hips.position.x = Math.max(-2.5, Math.min(2.5, hips.position.x));
         hips.position.z = Math.max(-2.5, Math.min(2.5, hips.position.z));
@@ -870,46 +868,44 @@ export class Dancer {
     // Ankle joint to shoe sole contact (~0.065m)
     const SOLE_OFFSET = 0.065;
 
-    // Detect genuine inverted / floor freeze (head significantly lower than hips, or deep ground handstand freeze)
-    const isInvertedFreeze = (headY < hipsY - 0.15) || (hipsY < 0.35 && Math.min(lhY, rhY) < Math.min(lfY, rfY));
-    let neededCorrection = 0.0;
+    // Smooth continuous inverted factor (0.0 = fully standing upright, 1.0 = fully inverted / ground contact)
+    // Based on relative vertical distance between hips and head
+    const rawInvert = (hipsY - headY + 0.12) / 0.35;
+    const invertedFactor = THREE.MathUtils.clamp(rawInvert, 0.0, 1.0);
 
-    if (isInvertedFreeze) {
-      // In handstands and floor freezes, hands or head form the ground contact
-      const effectiveLh = lhY - PALM_OFFSET;
-      const effectiveRh = rhY - PALM_OFFSET;
-      const effectiveHead = headY - 0.04;
-      const minUpper = Math.min(effectiveLh, effectiveRh, effectiveHead);
+    // 1. Upper body grounding (hands / head for floor spins and freezes)
+    const effectiveLh = lhY - PALM_OFFSET;
+    const effectiveRh = rhY - PALM_OFFSET;
+    const effectiveHead = headY - 0.04;
+    const minUpper = Math.min(effectiveLh, effectiveRh, effectiveHead);
 
-      this._isLeftHandFloorContact = (effectiveLh < 0.16);
-      this._isRightHandFloorContact = (effectiveRh < 0.16);
+    let upperCorrection = 0.0;
+    if (minUpper < 0.38 && minUpper > -0.35) {
+      upperCorrection = -minUpper;
+    }
+    this._isLeftHandFloorContact = (effectiveLh < 0.18) && (invertedFactor > 0.4);
+    this._isRightHandFloorContact = (effectiveRh < 0.18) && (invertedFactor > 0.4);
 
-      // Snap the lowest supporting upper body joint to stage floor Y = 0
-      if (minUpper < 0.38 && minUpper > -0.28) {
-        neededCorrection = -minUpper;
-      }
-    } else {
-      this._isLeftHandFloorContact = false;
-      this._isRightHandFloorContact = false;
-      // Standing / dancing mode: feet are the primary ground support
-      const effectiveLf = Math.min(lfY, ltY) - SOLE_OFFSET;
-      const effectiveRf = Math.min(rfY, rtY) - SOLE_OFFSET;
-      const minFoot = Math.min(effectiveLf, effectiveRf);
+    // 2. Lower body grounding (feet / soles for standing dance steps)
+    const effectiveLf = Math.min(lfY, ltY) - SOLE_OFFSET;
+    const effectiveRf = Math.min(rfY, rtY) - SOLE_OFFSET;
+    const minFoot = Math.min(effectiveLf, effectiveRf);
 
-      // Prevent feet sinking below stage floor
-      if (minFoot < 0.0) {
-        neededCorrection = -minFoot;
-      } else if (minFoot > 0.01 && minFoot < 0.10 && hipsY < 1.15) {
-        // Subtle anti-hover correction for grounded dance steps
-        neededCorrection = -minFoot * 0.4;
-      }
+    let lowerCorrection = 0.0;
+    if (minFoot < 0.0) {
+      lowerCorrection = -minFoot;
+    } else if (minFoot > 0.01 && minFoot < 0.10 && hipsY < 1.15) {
+      lowerCorrection = -minFoot * 0.4;
     }
 
-    // Apply continuous smooth damping to eliminate any sudden popping
+    // Blend continuously between ground upper-body contact and foot contact
+    const neededCorrection = THREE.MathUtils.lerp(lowerCorrection, upperCorrection, invertedFactor);
+
+    // Apply continuous smooth damping (smooth lerp) to eliminate any sudden popping
     this._currentGroundCorrection = THREE.MathUtils.lerp(
       this._currentGroundCorrection || 0.0,
       neededCorrection,
-      Math.min(1.0, delta * 16.0)
+      Math.min(1.0, delta * 8.0)
     );
 
     hips.position.y += this._currentGroundCorrection;
