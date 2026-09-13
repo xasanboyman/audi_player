@@ -622,9 +622,21 @@ export class AudioEngine {
           }
         } catch (e) {}
       } else {
-        const now = performance.now();
-        const elapsed = (now - this.lastSyncPerfTime) * 0.001;
-        this.currentTime = this.lastSyncAudioTime + elapsed * (this.audio.playbackRate || 1.0);
+        // === PERFECT AUDIO CLOCK SYNC ===
+        // Read currentTime DIRECTLY from the audio element every frame.
+        // This is the ground truth — wall-clock interpolation accumulates error
+        // that makes the finger-tap test fail. audio.currentTime IS the master clock.
+        const rawAudioTime = this.audio.currentTime;
+        if (rawAudioTime > 0 || this.currentTime === 0) {
+          this.currentTime = rawAudioTime;
+          this.lastSyncAudioTime = rawAudioTime;
+          this.lastSyncPerfTime = performance.now();
+        } else {
+          // Fallback interpolation only when audio.currentTime isn't updating yet (buffering)
+          const now = performance.now();
+          const elapsed = (now - this.lastSyncPerfTime) * 0.001;
+          this.currentTime = this.lastSyncAudioTime + elapsed * (this.audio.playbackRate || 1.0);
+        }
       }
 
       this.checkBeatsAndSegments();

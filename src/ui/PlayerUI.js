@@ -183,6 +183,9 @@ export class PlayerUI {
     if (this.btnExpandTracks) {
       this.btnExpandTracks.addEventListener('click', () => this.openSearchModal());
     }
+    if (this.toggleCardPlaylist) {
+      this.toggleCardPlaylist.addEventListener('click', () => this.openSearchModal());
+    }
     if (this.toggleCardOpenSearch) {
       this.toggleCardOpenSearch.addEventListener('click', () => this.openSearchModal());
     }

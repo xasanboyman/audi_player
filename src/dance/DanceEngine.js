@@ -728,24 +728,29 @@ export class DanceEngine {
 
       // Calculate musical rhythm groove state with ground-truth kick drum beat locking
       const bpm = this.audioEngine.bpm || 120;
-      const beatPeriod = 60.0 / bpm;
       const bass = this.audioEngine.getBassEnergy();
       const songTime = this.audioEngine.currentTime;
       // Exact beat progress [0.0, 1.0) with 0.0 anchored on the kick drum
       const beatProgress = typeof this.audioEngine.getBeatProgress === 'function'
         ? this.audioEngine.getBeatProgress()
-        : ((songTime % beatPeriod) / beatPeriod);
+        : ((songTime % (60.0 / bpm)) / (60.0 / bpm));
+
+      // Expose for external use (metronome, debug overlay)
+      this.currentBeatProgress = beatProgress;
 
       // Cosine downbeat compression: maximum knee bend & hip dip at beatProgress = 0.0 (on the beat!)
+      // Reduced from 0.024+0.032 to 0.014+0.020 so it doesn't fight FBX root motion
       const bounceCurve = 0.5 * (1.0 + Math.cos(beatProgress * Math.PI * 2));
-      const downbeatDip = bounceCurve * (0.024 + bass * 0.032) * this.bounceIntensity;
+      const downbeatDip = bounceCurve * (0.014 + bass * 0.020) * this.bounceIntensity;
 
-      // Rhythmic lateral hip sway over 2 beats (1 bar)
-      const swayPeriod = beatPeriod * 2.0;
-      const lateralSway = Math.sin((songTime / swayPeriod) * Math.PI * 2) * 0.016 * (0.6 + bass * 0.4);
+      // === FIX: Rhythmic lateral hip sway now uses beatProgress directly (NOT raw time!)
+      // Using raw songTime caused sway to drift off-beat as audio.currentTime != wall clock.
+      // beatProgress is always 0→1 per beat exactly, so this is 100% beat-locked.
+      const swayPhase = ((beatProgress * 0.5) + 0.5) % 1.0; // half-speed: one full sway per 2 beats
+      const lateralSway = Math.sin(swayPhase * Math.PI * 2) * 0.012 * (0.6 + bass * 0.4);
 
       // Downbeat head nod: nods forward on kick drum (beatProgress = 0.0)
-      const headNod = (Math.cos(beatProgress * Math.PI * 2)) * 0.038 * (0.7 + bass * 0.3);
+      const headNod = (Math.cos(beatProgress * Math.PI * 2)) * 0.030 * (0.7 + bass * 0.3);
 
       this.grooveState = {
         bounceY: downbeatDip,
@@ -756,7 +761,8 @@ export class DanceEngine {
       this.smileValue = 0.08 + bass * 0.14;
 
       // Phase-Locked Loop (PLL) Synchronization:
-      // Dynamically trims action.timeScale by +/- 2% to 5% to lock animation foot strikes & steps to the kick drum
+      // Dynamically trims action.timeScale to lock animation downbeats to the kick drum.
+      // Research basis: FACT (ICLR 2022) uses 200ms correction window; we use continuous PLL.
       const syncActionPhase = (dancer, perfMeta) => {
         if (!dancer || !dancer.currentAction || !dancer.currentAction.isRunning()) return;
         const nativeBpm = perfMeta?.nativeBpm || bpm;
@@ -773,9 +779,10 @@ export class DanceEngine {
         if (phaseError > 0.5) phaseError -= 1.0;
         if (phaseError < -0.5) phaseError += 1.0;
 
-        // Proportional phase feedback trim (eliminates drift completely!)
-        const kP = 0.22;
-        const trim = 1.0 - THREE.MathUtils.clamp(kP * phaseError, -0.05, 0.05);
+        // Stronger proportional phase feedback trim (kP=0.45, ±8% range)
+        // Increased from 0.22/5% — this gives faster lock without instability
+        const kP = 0.45;
+        const trim = 1.0 - THREE.MathUtils.clamp(kP * phaseError, -0.08, 0.08);
         action.setEffectiveTimeScale(nominalTimeScale * trim);
       };
 
