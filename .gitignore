@@ -23,6 +23,7 @@ external_mocap/dance_pet/
 
 # Raw unprocessed dataset archives (runtime uses motions_processed and external_mocap)
 motion_data/
+motions_processed/curated/
 
 # User uploads
 uploads/*
