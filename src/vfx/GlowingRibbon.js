@@ -11,9 +11,9 @@ export class GlowingRibbon {
     this.scene = scene;
 
     this.color = options.color || new THREE.Color(1.0, 0.18, 0.55); // Neon Pink
-    this.width = options.width || 0.055;
-    this.maxPoints = options.maxPoints || 55; // ~1 second trail
-    this.lifetime = options.lifetime || 0.75; // seconds
+    this.width = options.width || 0.048;
+    this.maxPoints = options.maxPoints || 32; // Crisp, sleek ~0.4s comet trail
+    this.lifetime = options.lifetime || 0.40; // seconds
 
     this.history = []; // { pos: Vector3, time: number }
     this.enabled = true;
@@ -69,19 +69,42 @@ export class GlowingRibbon {
     this.material.color.set(hex);
   }
 
+  clear() {
+    this.history = [];
+    if (this.geometry) {
+      this.geometry.setDrawRange(0, 0);
+    }
+  }
+
   update(delta, camera) {
     if (!this.enabled || !this.targetBone) {
       this.mesh.visible = false;
       return;
     }
-    this.mesh.visible = true;
 
     // Get current world position of bone
     this.targetBone.getWorldPosition(this._worldPos);
 
-    // Add new point only if bone has moved (prevents trail stacking during idle)
+    // Suppress ribbons if bone is planted near the floor during floor freezes/spins
+    if (this._worldPos.y < 0.12) {
+      this.clear();
+      this.mesh.visible = false;
+      return;
+    }
+
     const lastPt = this.history[0];
-    const moved = !lastPt || this._worldPos.distanceTo(lastPt.pos) > 0.006;
+    if (lastPt) {
+      const dist = this._worldPos.distanceTo(lastPt.pos);
+      // Teleport / animation crossfade jump rejection:
+      // If bone moved > 0.22m in a single frame, clear trail instead of stretching a laser beam across the scene!
+      if (dist > 0.22) {
+        this.clear();
+      }
+    }
+
+    // Add new point only if bone has moved smoothly
+    const curLast = this.history[0];
+    const moved = !curLast || this._worldPos.distanceTo(curLast.pos) > 0.008;
     if (moved) {
       this.history.unshift({
         pos: this._worldPos.clone(),
@@ -106,42 +129,58 @@ export class GlowingRibbon {
       return;
     }
 
+    this.mesh.visible = true;
     camera.getWorldPosition(this._camPos);
 
-    // Build ribbon geometry oriented towards camera
-    const n = this.history.length;
+    // Build smooth curve points using Catmull-Rom spline interpolation
+    // Eliminates sharp polygonal angles and creates silky, flowing neon ribbon curves
+    let curvePoints = [];
+    if (this.history.length >= 3) {
+      try {
+        const rawPoints = this.history.map(h => h.pos);
+        const curve = new THREE.CatmullRomCurve3(rawPoints, false, 'centripetal', 0.5);
+        const sampleCount = Math.min(this.maxPoints, (this.history.length - 1) * 2 + 1);
+        curvePoints = curve.getPoints(sampleCount);
+      } catch (e) {
+        curvePoints = this.history.map(h => h.pos);
+      }
+    } else {
+      curvePoints = this.history.map(h => h.pos);
+    }
+
+    const n = Math.min(curvePoints.length, this.maxPoints);
     let posIdx = 0;
     let colIdx = 0;
 
     for (let i = 0; i < n; i++) {
-      const pt = this.history[i];
-      const t = pt.time / this.lifetime; // 0.0 at head, 1.0 at tail
-      const taper = Math.max(0.05, 1.0 - t); // Tapers down at tail
+      const ptPos = curvePoints[i];
+      const t = i / Math.max(1, n - 1); // 0.0 at head (newest), 1.0 at tail (oldest)
+      const taper = Math.max(0.04, Math.pow(1.0 - t, 1.2)); // Tapers smoothly towards tail
       const currentWidth = this.width * taper;
 
       // Calculate tangent along ribbon
       if (i < n - 1) {
-        this._dir.subVectors(pt.pos, this.history[i + 1].pos).normalize();
+        this._dir.subVectors(ptPos, curvePoints[i + 1]).normalize();
       } else {
-        this._dir.subVectors(this.history[i - 1].pos, pt.pos).normalize();
+        this._dir.subVectors(curvePoints[i - 1], ptPos).normalize();
       }
 
       // Normal to camera
-      this._normal.subVectors(this._camPos, pt.pos).normalize();
+      this._normal.subVectors(this._camPos, ptPos).normalize();
       this._side.crossVectors(this._dir, this._normal).normalize().multiplyScalar(currentWidth * 0.5);
 
       // Top vertex
-      this.positions[posIdx] = pt.pos.x + this._side.x;
-      this.positions[posIdx + 1] = pt.pos.y + this._side.y;
-      this.positions[posIdx + 2] = pt.pos.z + this._side.z;
+      this.positions[posIdx] = ptPos.x + this._side.x;
+      this.positions[posIdx + 1] = ptPos.y + this._side.y;
+      this.positions[posIdx + 2] = ptPos.z + this._side.z;
 
       // Bottom vertex
-      this.positions[posIdx + 3] = pt.pos.x - this._side.x;
-      this.positions[posIdx + 4] = pt.pos.y - this._side.y;
-      this.positions[posIdx + 5] = pt.pos.z - this._side.z;
+      this.positions[posIdx + 3] = ptPos.x - this._side.x;
+      this.positions[posIdx + 4] = ptPos.y - this._side.y;
+      this.positions[posIdx + 5] = ptPos.z - this._side.z;
 
-      // Fade color with distance from head
-      const brightness = Math.pow(1.0 - t, 1.3);
+      // Luminous falloff with smooth exponential decay
+      const brightness = Math.pow(1.0 - t, 1.5);
       this.colors[colIdx] = this.color.r * brightness;
       this.colors[colIdx + 1] = this.color.g * brightness;
       this.colors[colIdx + 2] = this.color.b * brightness;

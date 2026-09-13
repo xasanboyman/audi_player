@@ -337,6 +337,11 @@ export class Dancer {
     if (this.rightRibbon) this.rightRibbon.setColor(hex);
   }
 
+  clearRibbons() {
+    if (this.leftRibbon) this.leftRibbon.clear();
+    if (this.rightRibbon) this.rightRibbon.clear();
+  }
+
   setVisible(visible) {
     if (this.vrm && this.vrm.scene) {
       this.vrm.scene.visible = visible;
@@ -686,13 +691,17 @@ export class Dancer {
       }
     }
 
+    // Smoothly clear ribbon trails so old poses never stretch across the new pose!
+    this.clearRibbons();
+
     newAction.reset();
     newAction.setEffectiveTimeScale(timeScale);
     newAction.setEffectiveWeight(1.0);
 
-    // Gracefully crossfade from previous action with time warping
+    // Gracefully crossfade from previous action without timescale warping
     if (prevAction && prevAction.isRunning()) {
-      newAction.crossFadeFrom(prevAction, fadeDuration, true);
+      prevAction.clampWhenFinished = true; // Prevent looping snap during crossfade
+      newAction.crossFadeFrom(prevAction, fadeDuration, false); // warp = false for natural playback rate
       const clipToUncache = prevAction.getClip();
       setTimeout(() => {
         if (prevAction !== this.currentAction) {
@@ -863,45 +872,37 @@ export class Dancer {
     const hipsY = getBoneY(hips);
 
     // Anatomical offsets:
-    // Wrist joint to palm surface contact (~0.055m)
-    const PALM_OFFSET = 0.055;
-    // Ankle joint to shoe sole contact (~0.065m)
-    const SOLE_OFFSET = 0.065;
+    // Wrist joint to palm surface contact (~0.05m)
+    const PALM_OFFSET = 0.05;
+    // Ankle joint to shoe sole contact (~0.06m)
+    const SOLE_OFFSET = 0.06;
 
     // Smooth continuous inverted factor (0.0 = fully standing upright, 1.0 = fully inverted / ground contact)
-    // Based on relative vertical distance between hips and head
     const rawInvert = (hipsY - headY + 0.12) / 0.35;
     const invertedFactor = THREE.MathUtils.clamp(rawInvert, 0.0, 1.0);
 
-    // 1. Upper body grounding (hands / head for floor spins and freezes)
-    const effectiveLh = lhY - PALM_OFFSET;
-    const effectiveRh = rhY - PALM_OFFSET;
-    const effectiveHead = headY - 0.04;
-    const minUpper = Math.min(effectiveLh, effectiveRh, effectiveHead);
-
-    let upperCorrection = 0.0;
-    if (minUpper < 0.38 && minUpper > -0.35) {
-      upperCorrection = -minUpper;
-    }
-    this._isLeftHandFloorContact = (effectiveLh < 0.18) && (invertedFactor > 0.4);
-    this._isRightHandFloorContact = (effectiveRh < 0.18) && (invertedFactor > 0.4);
-
-    // 2. Lower body grounding (feet / soles for standing dance steps)
-    const effectiveLf = Math.min(lfY, ltY) - SOLE_OFFSET;
-    const effectiveRf = Math.min(rfY, rtY) - SOLE_OFFSET;
-    const minFoot = Math.min(effectiveLf, effectiveRf);
-
-    let lowerCorrection = 0.0;
-    if (minFoot < 0.0) {
-      lowerCorrection = -minFoot;
-    } else if (minFoot > 0.01 && minFoot < 0.10 && hipsY < 1.15) {
-      lowerCorrection = -minFoot * 0.4;
+    let neededCorrection = 0.0;
+    if (invertedFactor > 0.45) {
+      // Floor moves / freezes: keep supporting contact points (palms / head) above stage floor (Y >= 0)
+      // Only push UP if penetrating floor! Never pull down when rising into standing poses.
+      const minUpper = Math.min(lhY - PALM_OFFSET, rhY - PALM_OFFSET, headY - 0.04);
+      if (minUpper < 0.0) {
+        neededCorrection = -minUpper;
+      }
+      this._isLeftHandFloorContact = (lhY < 0.16);
+      this._isRightHandFloorContact = (rhY < 0.16);
+    } else {
+      // Upright dancing / standing: keep shoe soles above stage floor (Y >= 0)
+      // Only push UP if penetrating floor!
+      const minFoot = Math.min(lfY - SOLE_OFFSET, rfY - SOLE_OFFSET, ltY - SOLE_OFFSET, rtY - SOLE_OFFSET);
+      if (minFoot < 0.0) {
+        neededCorrection = -minFoot;
+      }
+      this._isLeftHandFloorContact = false;
+      this._isRightHandFloorContact = false;
     }
 
-    // Blend continuously between ground upper-body contact and foot contact
-    const neededCorrection = THREE.MathUtils.lerp(lowerCorrection, upperCorrection, invertedFactor);
-
-    // Apply continuous smooth damping (smooth lerp) to eliminate any sudden popping
+    // Exponential smoothing for natural, silky damping without popping or snapping
     this._currentGroundCorrection = THREE.MathUtils.lerp(
       this._currentGroundCorrection || 0.0,
       neededCorrection,

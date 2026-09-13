@@ -11,7 +11,7 @@ export const AUTHENTIC_DANCE_LIBRARY = [
   { id: 'dance_tut_hiphop', title: 'Finger Tutting & Geometry', type: 'retargeted', url: '/mocap/retargeted/dance_tut_hiphop.json', style: 'idol', energy: 0.82, isHighEnergy: true },
   { id: 'dance_booty_hiphop', title: 'Idol Bounce & Hips Rhythm', type: 'retargeted', url: '/mocap/retargeted/dance_booty_hiphop.json', style: 'idol', energy: 0.88, isHighEnergy: true },
   { id: 'dance_wave_hiphop', title: 'Body Wave & Arm Flow', type: 'retargeted', url: '/mocap/retargeted/dance_wave_hiphop.json', style: 'groove', energy: 0.80, isHighEnergy: false },
-  { id: 'dance_pop_groove', title: 'Pop Funk Groove', type: 'fbx', url: '/mocap/Dance_Pop_Groove.fbx', style: 'groove', energy: 0.86, isHighEnergy: true },
+  { id: 'arm_stretching_gretaa', title: 'Gretaa Sensual Flow & Stretch', type: 'fbx', url: '/mocap/Arm_Stretching_Gretaa.fbx', style: 'expressive', energy: 0.75, isHighEnergy: false },
   { id: 'hiphop_dancing_mixamo', title: 'Street Hip Hop Master', type: 'fbx', url: '/mocap/HipHopDancing_Mixamo.fbx', style: 'phonk', energy: 0.92, isHighEnergy: true },
   { id: 'girl_dance_groove', title: 'Girl Pop Groove', type: 'fbx', url: '/mocap/Girl_Dance_Groove.fbx', style: 'idol', energy: 0.84, isHighEnergy: true },
   { id: 'rumba_dancing_mixamo', title: 'Sensual Rumba Flow', type: 'fbx', url: '/mocap/Rumba_Dancing_Mixamo.fbx', style: 'chill', energy: 0.60, isHighEnergy: false },
@@ -456,12 +456,12 @@ export class DanceEngine {
     };
 
     // Musical crossfade duration:
-    // Ground / floor / spin moves take 1.6s to smoothly rise from the stage floor into standing poses without snapping
+    // Floor moves and standing up use a smooth 1.35s transition for natural rising without snapping
     const isFloorLead = this.isInvertedOrFloor(this.currentPerformanceLead) || this.isInvertedOrFloor(leadPerf);
-    const fadeDurationLead = isFloorLead ? 1.60 : (isInitial ? 0.35 : Math.max(0.75, Math.min(1.25, beatPeriod * 2.0)));
+    const fadeDurationLead = isFloorLead ? 1.35 : (isInitial ? 0.35 : Math.max(0.70, Math.min(1.10, beatPeriod * 2.0)));
 
     const isFloorPartner = this.isInvertedOrFloor(this.currentPerformancePartner) || this.isInvertedOrFloor(partnerPerf);
-    const fadeDurationPartner = isFloorPartner ? 1.60 : (isInitial ? 0.35 : Math.max(0.75, Math.min(1.25, beatPeriod * 2.0)));
+    const fadeDurationPartner = isFloorPartner ? 1.35 : (isInitial ? 0.35 : Math.max(0.70, Math.min(1.10, beatPeriod * 2.0)));
 
     // Dynamic hand gesture modulation based on motion energy mood
     const applyMoodHandGestures = (dancer, perf) => {
@@ -487,8 +487,11 @@ export class DanceEngine {
       applyMoodHandGestures(this.dancerPartner, partnerPerf);
     }
 
-    // Crossfade Lead (Ani)
-    const clipLead = await this.getOrLoadClip(leadPerf, this.dancerLead);
+    // Load clips concurrently for zero latency
+    const [clipLead, clipPartner] = await Promise.all([
+      this.getOrLoadClip(leadPerf, this.dancerLead),
+      (this.dancerPartner && partnerPerf) ? this.getOrLoadClip(partnerPerf, this.dancerPartner) : Promise.resolve(null)
+    ]);
     if (seq !== this._choreographySeq) return;
 
     this.currentPerformanceLead = leadPerf;
@@ -497,10 +500,7 @@ export class DanceEngine {
       this.dancerLead.crossfadeToClip(clipLead, fadeDurationLead, tempoScaleLead);
     }
 
-    // Crossfade Partner (Riko)
     if (this.dancerPartner && partnerPerf) {
-      const clipPartner = await this.getOrLoadClip(partnerPerf, this.dancerPartner);
-      if (seq !== this._choreographySeq) return;
       this.currentPerformancePartner = partnerPerf;
       if (clipPartner) {
         const tempoScalePartner = calcTempo(clipPartner);
@@ -535,8 +535,8 @@ export class DanceEngine {
 
     const bpm = this.audioEngine.bpm || 120;
     const beatPeriod = 60.0 / bpm;
-    const fadeDurationLead = isFloorLead ? 1.60 : Math.max(0.75, Math.min(1.20, beatPeriod * 2.0));
-    const fadeDurationPartner = isFloorPartner ? 1.60 : Math.max(0.75, Math.min(1.20, beatPeriod * 2.0));
+    const fadeDurationLead = isFloorLead ? 1.35 : Math.max(0.70, Math.min(1.10, beatPeriod * 2.0));
+    const fadeDurationPartner = isFloorPartner ? 1.35 : Math.max(0.70, Math.min(1.10, beatPeriod * 2.0));
 
     const calcTempo = (clip) => {
       if (!clip || !clip.duration) return 1.0;
@@ -545,15 +545,17 @@ export class DanceEngine {
       return Math.max(0.85, Math.min(1.22, clip.duration / idealDuration));
     };
 
-    if (this.dancerLead) {
-      const clip = await this.getOrLoadClip(perf, this.dancerLead);
-      if (seq !== this._choreographySeq) return;
-      if (clip) this.dancerLead.crossfadeToClip(clip, fadeDurationLead, calcTempo(clip));
+    const [clipLead, clipPartner] = await Promise.all([
+      this.dancerLead ? this.getOrLoadClip(perf, this.dancerLead) : Promise.resolve(null),
+      (this.dancerPartner && partnerPerf) ? this.getOrLoadClip(partnerPerf, this.dancerPartner) : Promise.resolve(null)
+    ]);
+    if (seq !== this._choreographySeq) return;
+
+    if (clipLead && this.dancerLead) {
+      this.dancerLead.crossfadeToClip(clipLead, fadeDurationLead, calcTempo(clipLead));
     }
-    if (this.dancerPartner && partnerPerf) {
-      const clip = await this.getOrLoadClip(partnerPerf, this.dancerPartner);
-      if (seq !== this._choreographySeq) return;
-      if (clip) this.dancerPartner.crossfadeToClip(clip, fadeDurationPartner, calcTempo(clip));
+    if (clipPartner && this.dancerPartner) {
+      this.dancerPartner.crossfadeToClip(clipPartner, fadeDurationPartner, calcTempo(clipPartner));
     }
     console.log(`💃 Harmonized Performance -> Lead: [${perf.title}] | Partner: [${partnerPerf.title}]`);
   }
@@ -566,23 +568,24 @@ export class DanceEngine {
     const seq = ++this._choreographySeq;
 
     const isFloorLead = this.isInvertedOrFloor(this.currentPerformanceLead);
-    const effectiveFadeLead = isFloorLead ? 1.60 : fadeDuration;
+    const effectiveFadeLead = isFloorLead ? 1.35 : fadeDuration;
     const isFloorPartner = this.isInvertedOrFloor(this.currentPerformancePartner);
-    const effectiveFadePartner = isFloorPartner ? 1.60 : fadeDuration;
+    const effectiveFadePartner = isFloorPartner ? 1.35 : fadeDuration;
 
     this.currentPerformanceLead = IDLE_PERFORMANCES.lead;
     this.currentPerformancePartner = IDLE_PERFORMANCES.partner;
 
-    if (this.dancerLead) {
-      const clip = await this.getOrLoadClip(IDLE_PERFORMANCES.lead, this.dancerLead);
-      if (seq === this._choreographySeq && this.isIdle && clip) {
-        this.dancerLead.crossfadeToClip(clip, effectiveFadeLead, 1.0);
+    const [clipLead, clipPartner] = await Promise.all([
+      this.dancerLead ? this.getOrLoadClip(IDLE_PERFORMANCES.lead, this.dancerLead) : Promise.resolve(null),
+      this.dancerPartner ? this.getOrLoadClip(IDLE_PERFORMANCES.partner, this.dancerPartner) : Promise.resolve(null)
+    ]);
+
+    if (seq === this._choreographySeq && this.isIdle) {
+      if (clipLead && this.dancerLead) {
+        this.dancerLead.crossfadeToClip(clipLead, effectiveFadeLead, 1.0);
       }
-    }
-    if (this.dancerPartner) {
-      const clip = await this.getOrLoadClip(IDLE_PERFORMANCES.partner, this.dancerPartner);
-      if (seq === this._choreographySeq && this.isIdle && clip) {
-        this.dancerPartner.crossfadeToClip(clip, effectiveFadePartner, 1.0);
+      if (clipPartner && this.dancerPartner) {
+        this.dancerPartner.crossfadeToClip(clipPartner, effectiveFadePartner, 1.0);
       }
     }
     console.log('🧘 Dual dancers smoothly transitioned to natural Idle poses');
