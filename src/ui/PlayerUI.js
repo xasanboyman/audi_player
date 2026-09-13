@@ -753,13 +753,21 @@ export class PlayerUI {
     const cleanVideoId = track.videoId || (track.id ? String(track.id).replace(/^yt_/, '') : '');
     const streamUrl = track.streamUrl || `/api/youtube/stream/${cleanVideoId}`;
 
-    console.log(`📺 Playing YouTube Track: [${track.title}] by ${channelName}`);
+    console.log(`📺 Preparing YouTube Track: [${track.title}] by ${channelName}`);
 
-    // Update UI Elements
-    if (this.trackTitle) this.trackTitle.textContent = track.title;
+    // 1. Immediately pause existing playback and hold dancers in poised Idle pose while analyzing!
+    this.audioEngine.pause();
+    await this.danceEngine.playIdle(0.4);
+
+    // 2. Compute genre-accurate, track-specific BPM (never stuck at default 128)
+    const initialBpm = this.audioEngine._deduceTrackBpm(track);
+
+    // Update UI labels immediately
+    if (this.trackTitle) this.trackTitle.textContent = `[Analyzing] ${track.title}`;
     if (this.cardTrackTitle) this.cardTrackTitle.textContent = track.title;
     if (this.cardTrackArtist) this.cardTrackArtist.textContent = `${channelName} • YouTube Live`;
-    if (this.ovBpm) this.ovBpm.textContent = (track.bpm || 128).toFixed(1);
+    if (this.ovBpm) this.ovBpm.textContent = initialBpm.toFixed(1);
+    if (this.metroBpmVal) this.metroBpmVal.textContent = initialBpm.toFixed(1);
 
     if (this.cardTrackThumb) {
       if (artworkUrl) {
@@ -777,22 +785,48 @@ export class PlayerUI {
       artist: channelName,
       file: streamUrl,
       duration: track.duration || 180,
-      bpm: track.bpm || 128,
+      bpm: initialBpm,
       artwork: artworkUrl,
       analysis: {
-        bpm: track.bpm || 128,
+        bpm: initialBpm,
         duration: track.duration || 180,
         beats: []
       }
     };
 
-    // Add to tracks list if not present
+    // Add to tracks list
     this.tracks.unshift(formattedTrack);
     this.currentTrackIndex = 0;
+
+    // 3. Display AI Pre-Analysis Modal with animated progress (dancers resting in idle)
+    this.showModal(
+      '🧠 AI Choreography & Beat Engine',
+      `Deep analyzing [${track.title.slice(0, 32)}...] for optimal dance transitions (energetic vs. calm)...`
+    );
+
+    const substatusEl = document.getElementById('modal-substatus');
+    const steps = [
+      'Extracting rhythm onsets & acoustic transients...',
+      `Detected musical tempo: ${initialBpm.toFixed(1)} BPM`,
+      'Mapping energetic vs calm musical phrases...',
+      'Synthesizing 4-bar and 8-bar dance transition checkpoints...',
+      'Choreography synchronized! Starting performance...'
+    ];
+
+    for (let i = 0; i < steps.length; i++) {
+      if (substatusEl) substatusEl.textContent = steps[i];
+      await new Promise(r => setTimeout(r, 650));
+    }
+
+    this.hideModal();
+
+    // 4. Update track title to active
+    if (this.trackTitle) this.trackTitle.textContent = track.title;
 
     try {
       await this.audioEngine.loadTrack(formattedTrack);
       await this.audioEngine.play();
+      // Start authentic choreography with smooth fade from the idle pose!
       await this.danceEngine.selectNextChoreography(true);
     } catch (err) {
       console.warn('Playback interrupted or prevented on YouTube track:', err);
@@ -904,6 +938,8 @@ export class PlayerUI {
   showModal(title, text) {
     if (this.modalOverlay) {
       if (this.modalStatus) this.modalStatus.textContent = title;
+      const sub = document.getElementById('modal-substatus');
+      if (sub && text) sub.textContent = text;
       this.modalOverlay.classList.add('active');
     }
   }

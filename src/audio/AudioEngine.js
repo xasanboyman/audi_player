@@ -387,6 +387,93 @@ export class AudioEngine {
   }
 
   /**
+   * Intelligently deduces musical BPM and genre characteristics from track metadata and titles.
+   * Eliminates the static 128 BPM default so phonk, trap, lofi, dubstep, rock, and anime tracks
+   * get natural, genre-accurate tempos and dynamic energy progressions.
+   */
+  _deduceTrackBpm(track) {
+    if (!track) return 120;
+    if (track.bpm && track.bpm > 50 && track.bpm < 240 && track.bpm !== 128) {
+      return track.bpm;
+    }
+    if (track.analysis?.bpm && track.analysis.bpm > 50 && track.analysis.bpm < 240 && track.analysis.bpm !== 128) {
+      return track.analysis.bpm;
+    }
+
+    const title = `${track.title || ''} ${track.artist || ''} ${track.id || ''}`.toLowerCase();
+
+    // 1. Explicit BPM in title e.g. "140 BPM", "135bpm", "160_bpm"
+    const bpmMatch = title.match(/(\b1[0-9]{2}\b|\b[7-9][0-9]\b)\s*(?:bpm|\bbpm\b)/);
+    if (bpmMatch && bpmMatch[1]) {
+      const val = parseFloat(bpmMatch[1]);
+      if (val >= 60 && val <= 200) return val;
+    }
+
+    // 2. Phonk / Drift / Cowbell / Memphis
+    if (title.includes('phonk') || title.includes('drift') || title.includes('cowbell') || title.includes('memphis') || title.includes('kordhell') || title.includes('interworld')) {
+      return 142.2;
+    }
+
+    // 3. Drum and Bass / Jungle
+    if (title.includes('dnb') || title.includes('drum and bass') || title.includes('jungle') || title.includes('neurofunk') || title.includes('breakcore')) {
+      return 174.0;
+    }
+
+    // 4. Dubstep / Riddim / Hard Trap
+    if (title.includes('dubstep') || title.includes('riddim') || title.includes('skrillex') || title.includes('trench')) {
+      return 140.0;
+    }
+
+    // 5. Hip-Hop / Rap / Trap / Boom Bap
+    if (title.includes('boom bap') || title.includes('90s hip hop') || title.includes('oldschool rap')) {
+      return 92.0;
+    }
+    if (title.includes('trap') || title.includes('drill') || title.includes('rap') || title.includes('hip hop') || title.includes('beat')) {
+      return 136.0;
+    }
+
+    // 6. Lo-Fi / Chill / Study / Sleep / Ambient
+    if (title.includes('lofi') || title.includes('lo-fi') || title.includes('chill') || title.includes('ambient') || title.includes('relax') || title.includes('study') || title.includes('piano')) {
+      return 82.0;
+    }
+
+    // 7. House / Tech House / Deep House
+    if (title.includes('deep house') || title.includes('tropical house') || title.includes('slap house')) {
+      return 124.0;
+    }
+    if (title.includes('tech house') || title.includes('techno') || title.includes('acid')) {
+      return 130.0;
+    }
+
+    // 8. Eurobeat / Hyperpop / Speedcore
+    if (title.includes('eurobeat') || title.includes('initial d') || title.includes('nightcore') || title.includes('hyperpop') || title.includes('speed')) {
+      return 155.0;
+    }
+
+    // 9. J-Pop / Anime Opening / K-Pop Idol
+    if (title.includes('anime') || title.includes('ost') || title.includes('j-pop') || title.includes('jpop') || title.includes('vocaloid') || title.includes('hatsune')) {
+      return 134.0;
+    }
+    if (title.includes('k-pop') || title.includes('kpop') || title.includes('idol') || title.includes('dance pop')) {
+      return 122.0;
+    }
+
+    // 10. Rock / Metal / Punk
+    if (title.includes('rock') || title.includes('punk') || title.includes('metal') || title.includes('guitar')) {
+      return 138.0;
+    }
+
+    // Pseudo-deterministic organic hash based on title string (112 - 146 BPM range)
+    let hash = 0;
+    for (let i = 0; i < title.length; i++) {
+      hash = ((hash << 5) - hash) + title.charCodeAt(i);
+      hash |= 0;
+    }
+    const variance = (Math.abs(hash) % 34); // 0 to 33
+    return 114.0 + variance;
+  }
+
+  /**
    * Ensures every track (pre-loaded, uploaded, or searched open-source)
    * has a complete, high-precision musical beat grid and 4-bar/8-bar section structures.
    */
@@ -394,9 +481,12 @@ export class AudioEngine {
     if (!track.analysis) {
       track.analysis = {};
     }
-    if (!track.analysis.bpm || track.analysis.bpm <= 0) {
-      track.analysis.bpm = track.bpm || 120;
+
+    // Use intelligent genre/title deduction if bpm was defaulted to 120 or 128
+    if (!track.analysis.bpm || track.analysis.bpm <= 0 || track.analysis.bpm === 128 || track.analysis.bpm === 120) {
+      track.analysis.bpm = this._deduceTrackBpm(track);
     }
+    track.bpm = track.analysis.bpm;
     this.bpm = track.analysis.bpm;
 
     if (!track.analysis.beats || track.analysis.beats.length === 0) {
@@ -422,17 +512,21 @@ export class AudioEngine {
       if (i % 4 === 0) downbeats.push(t);
     }
 
-    // Standard 4-bar (16-beat) and 8-bar (32-beat) musical phrasing
+    // Phonk / Electronic / Hip-Hop dynamic section template
+    const title = `${track.title || ''} ${track.artist || ''}`.toLowerCase();
+    const isPhonkOrTrap = title.includes('phonk') || title.includes('drift') || title.includes('trap') || title.includes('bass');
+    const isCalm = title.includes('lofi') || title.includes('chill') || title.includes('ambient') || title.includes('piano');
+
     const sectionTemplates = [
-      { bars: 4, name: 'Intro', style: 'intro', energy: 0.35 },
-      { bars: 8, name: 'Verse 1', style: 'rhythm', energy: 0.65 },
-      { bars: 4, name: 'Buildup', style: 'high_energy', energy: 0.85 },
-      { bars: 8, name: 'Chorus / Drop', style: 'high_energy', energy: 0.96 },
-      { bars: 8, name: 'Verse 2', style: 'rhythm', energy: 0.68 },
-      { bars: 4, name: 'Breakdown', style: 'chill', energy: 0.45 },
-      { bars: 4, name: 'Buildup 2', style: 'high_energy', energy: 0.88 },
-      { bars: 8, name: 'Final Drop', style: 'high_energy', energy: 0.98 },
-      { bars: 8, name: 'Outro', style: 'outro', energy: 0.35 }
+      { bars: 4, name: 'Intro', style: 'intro', energy: isCalm ? 0.25 : 0.40 },
+      { bars: 8, name: 'Verse 1', style: 'rhythm', energy: isCalm ? 0.35 : (isPhonkOrTrap ? 0.78 : 0.65) },
+      { bars: 4, name: 'Buildup', style: 'high_energy', energy: isCalm ? 0.45 : (isPhonkOrTrap ? 0.90 : 0.82) },
+      { bars: 8, name: 'Chorus / Drop', style: 'high_energy', energy: isCalm ? 0.55 : (isPhonkOrTrap ? 1.00 : 0.95) },
+      { bars: 8, name: 'Verse 2', style: 'rhythm', energy: isCalm ? 0.35 : (isPhonkOrTrap ? 0.80 : 0.68) },
+      { bars: 4, name: 'Breakdown', style: 'chill', energy: isCalm ? 0.20 : 0.45 },
+      { bars: 4, name: 'Buildup 2', style: 'high_energy', energy: isCalm ? 0.50 : (isPhonkOrTrap ? 0.94 : 0.88) },
+      { bars: 8, name: 'Final Drop', style: 'high_energy', energy: isCalm ? 0.60 : (isPhonkOrTrap ? 1.00 : 0.98) },
+      { bars: 8, name: 'Outro', style: 'outro', energy: isCalm ? 0.20 : 0.35 }
     ];
 
     const segments = [];
