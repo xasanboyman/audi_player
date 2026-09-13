@@ -17,7 +17,6 @@ export class StageLighting {
     this.setupEqualizerRing();
     this.setupSpotlights();
     this.setupParticleDust();
-    this.setupMetronome();
   }
 
   setupEnvironment() {
@@ -179,89 +178,7 @@ export class StageLighting {
     this.scene.add(this.particles);
   }
 
-  /**
-   * 3D Metronome: A swinging pendulum that demonstrates exact beat rhythm.
-   * The bob reaches its LEFT-most point at beatProgress = 0.0 (the downbeat/kick drum).
-   * Watch it swing and tap along — if the dancer moves with the pendulum, sync is perfect.
-   */
-  setupMetronome() {
-    // Container group — positioned in clear view to the right of dancers
-    this.metronomeGroup = new THREE.Group();
-    this.metronomeGroup.position.set(1.85, 0.0, 1.8);
-    this.metronomeGroup.rotation.y = -0.35;
-    this.metronomeGroup.scale.set(1.35, 1.35, 1.35);
-    this.scene.add(this.metronomeGroup);
-
-    // Base block (dark metallic trapezoid)
-    const baseGeo = new THREE.BoxGeometry(0.22, 0.18, 0.14);
-    const baseMat = new THREE.MeshStandardMaterial({ color: 0x1a1a2e, metalness: 0.9, roughness: 0.2 });
-    const base = new THREE.Mesh(baseGeo, baseMat);
-    base.position.y = 0.09;
-    this.metronomeGroup.add(base);
-
-    // Vertical post
-    const postGeo = new THREE.CylinderGeometry(0.012, 0.016, 0.65, 8);
-    const postMat = new THREE.MeshStandardMaterial({ color: 0x888899, metalness: 0.8, roughness: 0.3 });
-    const post = new THREE.Mesh(postGeo, postMat);
-    post.position.y = 0.18 + 0.325;
-    this.metronomeGroup.add(post);
-
-    // Pendulum pivot point (at top of post)
-    this.metronomePivot = new THREE.Group();
-    this.metronomePivot.position.y = 0.18 + 0.65;
-    this.metronomeGroup.add(this.metronomePivot);
-
-    // Pendulum arm (thin rod hanging down)
-    const armGeo = new THREE.CylinderGeometry(0.006, 0.006, 0.58, 6);
-    const armMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.95, roughness: 0.1, emissive: 0x332200 });
-    const arm = new THREE.Mesh(armGeo, armMat);
-    arm.position.y = -0.29; // hangs down from pivot
-    this.metronomePivot.add(arm);
-
-    // Glowing bob at tip of arm
-    const bobGeo = new THREE.SphereGeometry(0.042, 16, 12);
-    this.metronomeBobMat = new THREE.MeshStandardMaterial({
-      color: 0xffd700,
-      emissive: 0xff8800,
-      emissiveIntensity: 0.6,
-      metalness: 0.85,
-      roughness: 0.05
-    });
-    this.metronomeBob = new THREE.Mesh(bobGeo, this.metronomeBobMat);
-    this.metronomeBob.position.y = -0.58;
-    this.metronomePivot.add(this.metronomeBob);
-
-    // Beat flash ring around bob (glows on downbeat)
-    const flashGeo = new THREE.RingGeometry(0.055, 0.075, 16);
-    this.metronomeFlashMat = new THREE.MeshBasicMaterial({
-      color: 0xff4400,
-      transparent: true,
-      opacity: 0.0,
-      side: THREE.DoubleSide,
-      blending: THREE.AdditiveBlending
-    });
-    this.metronomeFlash = new THREE.Mesh(flashGeo, this.metronomeFlashMat);
-    this.metronomeFlash.position.y = -0.58;
-    this.metronomeFlash.rotation.x = Math.PI / 2;
-    this.metronomePivot.add(this.metronomeFlash);
-
-    // Small tick marker lines on post (visual scale reference)
-    for (let i = 0; i < 3; i++) {
-      const tickGeo = new THREE.BoxGeometry(0.05, 0.005, 0.005);
-      const tickMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
-      const tick = new THREE.Mesh(tickGeo, tickMat);
-      tick.position.y = 0.18 + 0.15 + i * 0.18;
-      tick.position.z = 0.01;
-      this.metronomeGroup.add(tick);
-    }
-
-    // Label "BPM" at top using a point light glow
-    this.metronomeBeatLight = new THREE.PointLight(0xff6600, 0.0, 0.8);
-    this.metronomeBeatLight.position.set(0, -0.58, 0);
-    this.metronomePivot.add(this.metronomeBeatLight);
-  }
-
-  update(time, audioEngine, danceEngine) {
+  update(time, audioEngine) {
     const bass = audioEngine ? audioEngine.getBassEnergy() : 0;
     const mid = audioEngine ? audioEngine.getMidEnergy() : 0;
     const high = audioEngine ? audioEngine.getHighEnergy() : 0;
@@ -271,31 +188,6 @@ export class StageLighting {
     const beatProg = (audioEngine && typeof audioEngine.getBeatProgress === 'function')
       ? audioEngine.getBeatProgress()
       : ((time % (60.0 / bpm)) / (60.0 / bpm));
-
-    // === UPDATE 3D METRONOME ===
-    // The metronome pendulum swings using a cosine function of beatProgress.
-    // At beatProgress=0.0 (downbeat/kick), pendulum is at left extreme (-maxAngle).
-    // At beatProgress=0.5 (upbeat/snare), pendulum is at right extreme (+maxAngle).
-    // This creates a classic left↔right swing that perfectly visualizes the beat.
-    if (this.metronomePivot) {
-      const maxAngleDeg = 38; // degrees of swing
-      const maxAngle = (maxAngleDeg * Math.PI) / 180;
-      // cos(0)=1 → left extreme; cos(π)=-1 → right extreme; full swing per beat
-      const pendulumAngle = -maxAngle * Math.cos(beatProg * Math.PI * 2);
-      this.metronomePivot.rotation.z = isPlaying ? pendulumAngle : 0;
-
-      // Bob glow pulses on downbeat (beatProgress near 0)
-      const beatFlash = Math.exp(-10.0 * beatProg); // sharp spike at 0.0
-      if (this.metronomeBobMat) {
-        this.metronomeBobMat.emissiveIntensity = isPlaying ? (0.3 + beatFlash * 2.8) : 0.2;
-      }
-      if (this.metronomeFlashMat) {
-        this.metronomeFlashMat.opacity = isPlaying ? beatFlash * 0.9 : 0.0;
-      }
-      if (this.metronomeBeatLight) {
-        this.metronomeBeatLight.intensity = isPlaying ? beatFlash * 3.5 : 0.0;
-      }
-    }
 
     // Crisp exponential transient impulses (exact attack on beat downbeat & snare upbeat)
     const kickImpulse = Math.exp(-12.0 * beatProg);

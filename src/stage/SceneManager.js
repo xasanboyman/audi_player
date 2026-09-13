@@ -265,9 +265,9 @@ export class SceneManager {
     // 5. Update VRM Physics & Glowing Ribbon Trails
     this.dancers.forEach(dancer => dancer.update(delta, this.camera));
 
-    // 5. Update Stage Lighting & 3D Audio Visualizer (includes 3D Metronome)
+    // 5. Update Stage Lighting & 3D Audio Visualizer
     if (this.stageLighting) {
-      this.stageLighting.update(elapsedTime, this.audioEngine, this.danceEngine);
+      this.stageLighting.update(elapsedTime, this.audioEngine);
     }
 
     // 6. Camera Motion

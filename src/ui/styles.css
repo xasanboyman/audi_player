@@ -551,6 +551,78 @@ body, html {
   color: #63687b;
 }
 
+/* Simple 2D Metronome Widget */
+.simple-metronome {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 4px 8px;
+  width: fit-content;
+}
+
+.metro-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: #7c8296;
+  letter-spacing: 0.5px;
+}
+
+.metro-bpm {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--accent-cyan);
+}
+
+.metro-dots {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.metro-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  transition: background 0.06s, transform 0.06s, box-shadow 0.06s;
+}
+
+.metro-dot.active {
+  background: #ffffff;
+  transform: scale(1.3);
+  box-shadow: 0 0 6px #ffffff;
+}
+
+.metro-dot.downbeat {
+  background: var(--accent-pink) !important;
+  transform: scale(1.45) !important;
+  box-shadow: 0 0 10px var(--accent-pink) !important;
+}
+
+.metro-bar-track {
+  width: 42px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+}
+
+.metro-bar-slider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 10px;
+  background: linear-gradient(90deg, var(--accent-pink), var(--accent-cyan));
+  border-radius: 2px;
+  left: 0;
+  box-shadow: 0 0 6px var(--accent-cyan);
+}
+
 /* Center Media Controls */
 .bottom-center {
   flex: 1;

@@ -126,6 +126,16 @@ export class PlayerUI {
     this.btnExpandOverview = document.getElementById('btn-expand-overview');
     this.btnExpandLyrics = document.getElementById('btn-expand-lyrics');
 
+    // Simple UI Metronome elements
+    this.metroBpmVal = document.getElementById('metro-bpm-val');
+    this.metroDots = [
+      document.getElementById('metro-dot-0'),
+      document.getElementById('metro-dot-1'),
+      document.getElementById('metro-dot-2'),
+      document.getElementById('metro-dot-3')
+    ].filter(Boolean);
+    this.metroBarSlider = document.getElementById('metro-bar-slider');
+
     // Open Source Search Modal
     this.searchModal = document.getElementById('open-music-modal');
     this.searchModalBackdrop = document.getElementById('search-modal-backdrop');
@@ -493,14 +503,44 @@ export class PlayerUI {
       this.audioFileInput.addEventListener('change', (e) => this.handleAudioUpload(e));
     }
 
-    // Segment & Beat updates for Card 2 (Overview)
+    // Segment & Beat updates for Card 2 (Overview) and Simple Metronome
     this.audioEngine.on('segmentChange', (seg) => {
       if (this.ovSection) this.ovSection.textContent = (seg.name || 'VERSE').toUpperCase();
     });
 
     this.audioEngine.on('beat', (beatIndex, isDownbeat) => {
+      const currentBpm = (this.audioEngine.bpm || 120).toFixed(1);
       if (this.ovBpm) {
-        this.ovBpm.textContent = (this.audioEngine.bpm || 120).toFixed(1);
+        this.ovBpm.textContent = currentBpm;
+      }
+      if (this.metroBpmVal) {
+        this.metroBpmVal.textContent = currentBpm;
+      }
+
+      // 4-beat bar indicator (1, 2, 3, 4)
+      if (this.metroDots && this.metroDots.length === 4) {
+        const beatInBar = ((beatIndex % 4) + 4) % 4;
+        this.metroDots.forEach((dot, idx) => {
+          dot.classList.remove('active', 'downbeat');
+          if (idx === beatInBar) {
+            dot.classList.add(idx === 0 ? 'downbeat' : 'active');
+            // Auto-clear active pulse after 120ms
+            setTimeout(() => {
+              dot.classList.remove('active', 'downbeat');
+            }, 120);
+          }
+        });
+      }
+    });
+
+    // Animate the smooth sliding pendulum bar in the simple metronome on each time update
+    this.audioEngine.on('timeUpdate', () => {
+      if (this.metroBarSlider && typeof this.audioEngine.getBeatProgress === 'function') {
+        const beatProg = this.audioEngine.getBeatProgress(); // 0.0 -> 1.0
+        // Oscillate back and forth smoothly: 0 -> 32px -> 0
+        const pingPong = Math.abs(beatProg - 0.5) * 2.0; // 1 -> 0 -> 1
+        const maxOffset = 32; // track width 42 - slider width 10
+        this.metroBarSlider.style.transform = `translateX(${(1.0 - pingPong) * maxOffset}px)`;
       }
     });
   }
