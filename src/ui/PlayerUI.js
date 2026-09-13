@@ -245,13 +245,15 @@ export class PlayerUI {
     });
 
     // Song ended
-    this.audioEngine.audio.addEventListener('ended', () => {
+    const onSongEnded = () => {
       if (this.isRepeat) {
         this.selectTrack(this.currentTrackIndex, true);
       } else {
         this.playNextTrack();
       }
-    });
+    };
+    this.audioEngine.audio.addEventListener('ended', onSongEnded);
+    this.audioEngine.on('ended', onSongEnded);
 
     // Time update & seeking
     this.audioEngine.on('timeUpdate', (curr, dur) => {
@@ -602,7 +604,8 @@ export class PlayerUI {
   async playOpenSourceTrack(track) {
     const channelName = track.channel || track.artist || 'YouTube';
     const artworkUrl = track.thumbnail || track.artwork || '';
-    const streamUrl = track.streamUrl || `/api/youtube/stream/${track.videoId || (track.id ? track.id.replace(/^yt_/, '') : '')}`;
+    const cleanVideoId = track.videoId || (track.id ? String(track.id).replace(/^yt_/, '') : '');
+    const streamUrl = track.streamUrl || `/api/youtube/stream/${cleanVideoId}`;
 
     console.log(`📺 Playing YouTube Track: [${track.title}] by ${channelName}`);
 
@@ -621,7 +624,9 @@ export class PlayerUI {
     }
 
     const formattedTrack = {
-      id: track.id || `yt_${track.videoId}`,
+      id: track.id || `yt_${cleanVideoId}`,
+      videoId: cleanVideoId,
+      isYouTube: true,
       title: track.title,
       artist: channelName,
       file: streamUrl,

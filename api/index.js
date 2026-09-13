@@ -172,32 +172,44 @@ async function getAudioStreamUrl(videoId) {
 
 // Audio proxy streaming with HTTP 206 Partial Content
 async function proxyAudio(targetUrl, req, res) {
-  const range = req.headers.range;
-  const headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-  };
-  if (range) headers['Range'] = range;
+  try {
+    const range = req.headers.range;
+    const headers = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+    };
+    if (range) headers['Range'] = range;
 
-  const upstream = await fetch(targetUrl, { headers });
-  res.status(upstream.status);
+    const upstream = await fetch(targetUrl, { headers });
+    const contentType = upstream.headers.get('content-type') || '';
+    if (!upstream.ok || contentType.includes('text/html')) {
+      return res.status(502).json({
+        error: 'Upstream returned non-audio response',
+        status: upstream.status,
+        contentType
+      });
+    }
 
-  const forwardHeaders = ['content-type', 'content-length', 'content-range', 'accept-ranges'];
-  for (const h of forwardHeaders) {
-    const val = upstream.headers.get(h);
-    if (val) res.setHeader(h, val);
-  }
-  res.setHeader('Access-Control-Allow-Origin', '*');
+    res.status(upstream.status);
 
-  const reader = upstream.body.getReader();
-  const stream = async () => {
+    const forwardHeaders = ['content-type', 'content-length', 'content-range', 'accept-ranges'];
+    for (const h of forwardHeaders) {
+      const val = upstream.headers.get(h);
+      if (val) res.setHeader(h, val);
+    }
+    res.setHeader('Access-Control-Allow-Origin', '*');
+
+    const reader = upstream.body.getReader();
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
       res.write(value);
     }
     res.end();
-  };
-  await stream();
+  } catch (err) {
+    if (!res.headersSent) {
+      res.status(502).json({ error: err.message });
+    }
+  }
 }
 
 // -------------------------------------------------------------
