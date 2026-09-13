@@ -1,0 +1,28 @@
+# Dependencies
+node_modules
+
+# Large raw unprocessed motion datasets
+motion_data
+motions_processed/curated
+
+# Reference clones & submodules
+MotionDataViewer
+external_viewer
+web_backend_ref
+orchestrator_ref
+external_mocap/dance_pet
+
+# Local build output (Vercel builds via npm run build)
+dist
+
+# Python & Environment
+__pycache__
+*.pyc
+.venv
+venv
+.env
+
+# User uploads & git
+uploads
+.git
+*.log
