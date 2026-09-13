@@ -1,0 +1,218 @@
+{
+  "generatedAt": "2026-07-16T08:00:30.116Z",
+  "mode": "full-dances",
+  "referenceVrm": "resources/models/reference.vrm",
+  "count": 21,
+  "clips": [
+    {
+      "id": "idle_breathe_01",
+      "kind": "idle",
+      "label": "Idle",
+      "duration": 0.9666666388511658,
+      "tracks": 53,
+      "source": "nirholas/three.ws",
+      "license": "Mixamo via open-source demo; Adobe Mixamo terms",
+      "file": "Walking-idle.fbx"
+    },
+    {
+      "id": "dance_rumba",
+      "kind": "dance",
+      "label": "Rumba",
+      "duration": 2.366666555404663,
+      "tracks": 53,
+      "source": "nirholas/three.ws",
+      "license": "Mixamo via open-source demo; Adobe Mixamo terms",
+      "file": "Rumba Dancing.fbx"
+    },
+    {
+      "id": "dance_twist",
+      "kind": "dance",
+      "label": "Twist",
+      "duration": 9.433333396911621,
+      "tracks": 53,
+      "source": "nirholas/three.ws",
+      "license": "Mixamo via open-source demo; Adobe Mixamo terms",
+      "file": "Twist_Dance.fbx"
+    },
+    {
+      "id": "dance_silly",
+      "kind": "dance",
+      "label": "Silly Dancing",
+      "duration": 3.8333332538604736,
+      "tracks": 53,
+      "source": "nirholas/three.ws",
+      "license": "Mixamo via open-source demo; Adobe Mixamo terms",
+      "file": "Silly Dancing.fbx"
+    },
+    {
+      "id": "dance_ymca",
+      "kind": "dance",
+      "label": "YMCA",
+      "duration": 4.5,
+      "tracks": 53,
+      "source": "nirholas/three.ws",
+      "license": "Mixamo via open-source demo; Adobe Mixamo terms",
+      "file": "Ymca_Dance.fbx"
+    },
+    {
+      "id": "dance_booty_hiphop",
+      "kind": "dance",
+      "label": "Booty Hip Hop",
+      "duration": 4.900000095367432,
+      "tracks": 53,
+      "source": "nirholas/three.ws",
+      "license": "Mixamo via open-source demo; Adobe Mixamo terms",
+      "file": "BootyHipHopDance.fbx"
+    },
+    {
+      "id": "dance_hiphop",
+      "kind": "dance",
+      "label": "Hip Hop",
+      "duration": 4.4666666984558105,
+      "tracks": 53,
+      "source": "nirholas/three.ws",
+      "license": "Mixamo via open-source demo; Adobe Mixamo terms",
+      "file": "Hip Hop Dancing.fbx"
+    },
+    {
+      "id": "dance_capoeira",
+      "kind": "dance",
+      "label": "Capoeira",
+      "duration": 3.433333396911621,
+      "tracks": 53,
+      "source": "nirholas/three.ws",
+      "license": "Mixamo via open-source demo; Adobe Mixamo terms",
+      "file": "Capoeira.fbx"
+    },
+    {
+      "id": "dance_samba",
+      "kind": "dance",
+      "label": "Samba",
+      "duration": 18.200000762939453,
+      "tracks": 53,
+      "source": "mrdoob/three.js examples",
+      "license": "Mixamo sample via three.js examples; Adobe Mixamo terms",
+      "file": "Samba Dancing.fbx"
+    },
+    {
+      "id": "dance_thriller",
+      "kind": "dance",
+      "label": "Thriller Part 3",
+      "duration": 25.566667556762695,
+      "tracks": 53,
+      "source": "nirholas/three.ws",
+      "license": "Mixamo via open-source demo; Adobe Mixamo terms",
+      "file": "Thriller Part 3.fbx"
+    },
+    {
+      "id": "dance_party",
+      "kind": "dance",
+      "label": "Party Dancing",
+      "duration": 3.8333332538604736,
+      "tracks": 53,
+      "source": "nirholas/three.ws",
+      "license": "Mixamo via open-source demo; Adobe Mixamo terms",
+      "file": "Dancing.fbx"
+    },
+    {
+      "id": "dance_jazz",
+      "kind": "dance",
+      "label": "Jazz",
+      "duration": 5.433333396911621,
+      "tracks": 42,
+      "source": "vahiidl/synesthesia-music-player",
+      "license": "Mixamo via open demo; Adobe Mixamo terms",
+      "file": "animation-jazz.glb"
+    },
+    {
+      "id": "dance_belly",
+      "kind": "dance",
+      "label": "Belly Dance",
+      "duration": 25.366666793823242,
+      "tracks": 53,
+      "source": "vahiidl/synesthesia-music-player",
+      "license": "Mixamo via open demo; Adobe Mixamo terms",
+      "file": "animation-bellydancing.glb"
+    },
+    {
+      "id": "dance_arms_hiphop",
+      "kind": "dance",
+      "label": "Arms Hip Hop",
+      "duration": 21.96666717529297,
+      "tracks": 53,
+      "source": "vahiidl/synesthesia-music-player",
+      "license": "Mixamo via open demo; Adobe Mixamo terms",
+      "file": "animation-arms-hiphop.glb"
+    },
+    {
+      "id": "dance_snake_hiphop",
+      "kind": "dance",
+      "label": "Snake Hip Hop",
+      "duration": 15.266666412353516,
+      "tracks": 53,
+      "source": "vahiidl/synesthesia-music-player",
+      "license": "Mixamo via open demo; Adobe Mixamo terms",
+      "file": "animation-snake-hiphop.glb"
+    },
+    {
+      "id": "dance_step_hiphop",
+      "kind": "dance",
+      "label": "Step Hip Hop",
+      "duration": 7.800000190734863,
+      "tracks": 53,
+      "source": "vahiidl/synesthesia-music-player",
+      "license": "Mixamo via open demo; Adobe Mixamo terms",
+      "file": "animation-step-hiphop-dance.glb"
+    },
+    {
+      "id": "dance_tut_hiphop",
+      "kind": "dance",
+      "label": "Tut Hip Hop",
+      "duration": 16.933332443237305,
+      "tracks": 53,
+      "source": "vahiidl/synesthesia-music-player",
+      "license": "Mixamo via open demo; Adobe Mixamo terms",
+      "file": "animation-tut-hiphop.glb"
+    },
+    {
+      "id": "dance_wave_hiphop",
+      "kind": "dance",
+      "label": "Wave Hip Hop",
+      "duration": 15.966666221618652,
+      "tracks": 53,
+      "source": "vahiidl/synesthesia-music-player",
+      "license": "Mixamo via open demo; Adobe Mixamo terms",
+      "file": "animation-wave-hiphop.glb"
+    },
+    {
+      "id": "dance_breakdance_1990",
+      "kind": "dance",
+      "label": "Breakdance 1990",
+      "duration": 3.5,
+      "tracks": 53,
+      "source": "vahiidl/synesthesia-music-player",
+      "license": "Mixamo via open demo; Adobe Mixamo terms",
+      "file": "animation-breakdance-1990.glb"
+    },
+    {
+      "id": "dance_breakdance_uprock",
+      "kind": "dance",
+      "label": "Breakdance Uprock",
+      "duration": 5.333333492279053,
+      "tracks": 53,
+      "source": "vahiidl/synesthesia-music-player",
+      "license": "Mixamo via open demo; Adobe Mixamo terms",
+      "file": "animation-breakdance-uprock.glb"
+    },
+    {
+      "id": "idle_stand_02",
+      "kind": "idle",
+      "label": "Idle Stand",
+      "duration": 15.800000190734863,
+      "tracks": 53,
+      "source": "nirholas/three.ws",
+      "license": "Mixamo via open-source demo; Adobe Mixamo terms",
+      "file": "Idle.fbx"
+    }
+  ]
+}

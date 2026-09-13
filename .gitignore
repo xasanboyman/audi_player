@@ -19,6 +19,7 @@ MotionDataViewer/
 external_viewer/
 web_backend_ref/
 orchestrator_ref/
+external_mocap/dance_pet/
 
 # Raw unprocessed dataset archives (runtime uses motions_processed and external_mocap)
 motion_data/
