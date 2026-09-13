@@ -13,7 +13,25 @@ export class FBXRetargeter {
   }
 
   async loadFBXClip(url, vrm) {
-    const asset = await this.loader.loadAsync(url);
+    // Suppress benign Three.js FBXLoader warnings (e.g. ShininessExponent, skinning weights > 4)
+    const prevWarn = console.warn;
+    let asset;
+    try {
+      console.warn = (...args) => {
+        const msg = typeof args[0] === 'string' ? args[0] : (args[0]?.message || '');
+        if (
+          msg.includes('THREE.FBXLoader') ||
+          msg.includes('ShininessExponent') ||
+          msg.includes('skinning weights') ||
+          msg.includes('additional weights')
+        ) return;
+        prevWarn.apply(console, args);
+      };
+      asset = await this.loader.loadAsync(url);
+    } finally {
+      console.warn = prevWarn;
+    }
+
     if (!asset.animations || asset.animations.length === 0) {
       throw new Error(`No animations found in ${url}`);
     }

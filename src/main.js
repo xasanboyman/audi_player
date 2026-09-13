@@ -1,3 +1,20 @@
+// Suppress benign Three.js FBXLoader material and skinning warnings from console
+const _nativeWarn = console.warn;
+console.warn = function (...args) {
+  const first = typeof args[0] === 'string' ? args[0] : (args[0]?.message || '');
+  if (
+    first.includes('THREE.FBXLoader') ||
+    first.includes('ShininessExponent') ||
+    first.includes('skinning weights') ||
+    first.includes('Deleting additional weights') ||
+    first.includes('skipping texture') ||
+    first.includes('WebGLRenderer: A lot of textures')
+  ) {
+    return;
+  }
+  _nativeWarn.apply(console, args);
+};
+
 import './ui/styles.css';
 import * as THREE from 'three';
 import { AudioEngine } from './audio/AudioEngine.js';
