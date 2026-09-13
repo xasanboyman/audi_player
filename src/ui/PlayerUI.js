@@ -115,6 +115,17 @@ export class PlayerUI {
     this.btnDancerA = document.getElementById('btn-dancer-a');
     this.btnDancerB = document.getElementById('btn-dancer-b');
 
+    // View Segmented Pills (Minimize View, Player View, Search View)
+    this.btnViewMinimize = document.getElementById('btn-view-minimize');
+    this.btnViewPlayer = document.getElementById('btn-view-player');
+    this.btnViewSearch = document.getElementById('btn-view-search');
+    this.viewPills = [this.btnViewMinimize, this.btnViewPlayer, this.btnViewSearch].filter(Boolean);
+    this.viewportBottomCards = document.querySelector('.viewport-bottom-cards');
+
+    // Additional Card Expand buttons
+    this.btnExpandOverview = document.getElementById('btn-expand-overview');
+    this.btnExpandLyrics = document.getElementById('btn-expand-lyrics');
+
     // Open Source Search Modal
     this.searchModal = document.getElementById('open-music-modal');
     this.searchModalBackdrop = document.getElementById('search-modal-backdrop');
@@ -183,6 +194,18 @@ export class PlayerUI {
     if (this.btnExpandTracks) {
       this.btnExpandTracks.addEventListener('click', () => this.openSearchModal());
     }
+    if (this.btnExpandOverview) {
+      this.btnExpandOverview.addEventListener('click', () => {
+        // Cycle styles or focus overview
+        if (this.selectDanceStyle) this.selectDanceStyle.focus();
+      });
+    }
+    if (this.btnExpandLyrics) {
+      this.btnExpandLyrics.addEventListener('click', () => {
+        // Trigger dance celebration
+        if (this.audioEngine.isPlaying) this.danceEngine.selectNextChoreography(true);
+      });
+    }
     if (this.toggleCardPlaylist) {
       this.toggleCardPlaylist.addEventListener('click', () => this.openSearchModal());
     }
@@ -191,6 +214,53 @@ export class PlayerUI {
     }
     if (this.activeTrackLabelRow) {
       this.activeTrackLabelRow.addEventListener('click', () => this.openSearchModal());
+    }
+
+    // View Segmented Pills (Minimize View, Player View, Search View)
+    const setViewMode = (mode) => {
+      this.viewPills.forEach(p => p.classList.remove('active'));
+      if (mode === 'minimize') {
+        if (this.btnViewMinimize) this.btnViewMinimize.classList.add('active');
+        if (this.viewportBottomCards) this.viewportBottomCards.classList.add('hidden-cards');
+        if (this.searchModal) this.searchModal.classList.remove('active');
+        if (this.searchModalBackdrop) this.searchModalBackdrop.classList.remove('active');
+      } else if (mode === 'search') {
+        if (this.btnViewSearch) this.btnViewSearch.classList.add('active');
+        if (this.viewportBottomCards) this.viewportBottomCards.classList.remove('hidden-cards');
+        this.openSearchModal();
+      } else {
+        // 'player' (standard default)
+        if (this.btnViewPlayer) this.btnViewPlayer.classList.add('active');
+        if (this.viewportBottomCards) this.viewportBottomCards.classList.remove('hidden-cards');
+        if (this.searchModal) this.searchModal.classList.remove('active');
+        if (this.searchModalBackdrop) this.searchModalBackdrop.classList.remove('active');
+      }
+    };
+
+    if (this.btnViewMinimize) {
+      this.btnViewMinimize.addEventListener('click', () => setViewMode('minimize'));
+    }
+    if (this.btnViewPlayer) {
+      this.btnViewPlayer.addEventListener('click', () => setViewMode('player'));
+    }
+    if (this.btnViewSearch) {
+      this.btnViewSearch.addEventListener('click', () => setViewMode('search'));
+    }
+
+    // When modal closes, restore active view pill to Player View if Search View was active
+    if (this.btnCloseSearchModal) {
+      this.btnCloseSearchModal.addEventListener('click', () => {
+        if (this.btnViewSearch?.classList.contains('active')) {
+          setViewMode('player');
+        }
+      });
+    }
+    if (this.searchModalBackdrop) {
+      this.searchModalBackdrop.addEventListener('click', () => {
+        if (this.btnViewSearch?.classList.contains('active')) {
+          setViewMode('player');
+        }
+      });
     }
 
     // Dance Style Selector

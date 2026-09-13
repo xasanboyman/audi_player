@@ -185,10 +185,11 @@ export class StageLighting {
    * Watch it swing and tap along — if the dancer moves with the pendulum, sync is perfect.
    */
   setupMetronome() {
-    // Container group — positioned to the right of the stage near the front
+    // Container group — positioned in clear view to the right of dancers
     this.metronomeGroup = new THREE.Group();
-    this.metronomeGroup.position.set(2.8, 0.0, 1.5);
-    this.metronomeGroup.rotation.y = -0.5;
+    this.metronomeGroup.position.set(1.85, 0.0, 1.8);
+    this.metronomeGroup.rotation.y = -0.35;
+    this.metronomeGroup.scale.set(1.35, 1.35, 1.35);
     this.scene.add(this.metronomeGroup);
 
     // Base block (dark metallic trapezoid)

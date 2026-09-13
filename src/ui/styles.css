@@ -216,6 +216,13 @@ body, html {
   gap: 14px;
   z-index: 25;
   pointer-events: none;
+  transition: opacity 0.28s ease, transform 0.28s ease;
+}
+
+.viewport-bottom-cards.hidden-cards {
+  opacity: 0;
+  transform: translateY(24px);
+  pointer-events: none !important;
 }
 
 .glass-card {
