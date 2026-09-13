@@ -4,6 +4,39 @@
  * music search (Audius decentralized network), live 3D stage cards, A/B dancer switcher,
  * and stop/idle synchronization.
  */
+const BUILTIN_TRACKS = [
+  {
+    id: 'brawl_stars_phonk',
+    title: 'Brawl Stars Phonk (Drift Mix)',
+    artist: 'Cyber Funk',
+    file: '/tracks/brawl_stars_phonk.mp3',
+    fileName: 'brawl_stars_phonk.mp3',
+    bpm: 143.6,
+    duration: 98,
+    analysis: { bpm: 143.6, duration: 98, beats: [] }
+  },
+  {
+    id: 'cyber_phonk_140',
+    title: 'Cyber Phonk 140',
+    artist: 'GhostxBlade',
+    file: '/tracks/cyber_phonk_140.mp3',
+    fileName: 'cyber_phonk_140.mp3',
+    bpm: 140,
+    duration: 41,
+    analysis: { bpm: 140, duration: 41, beats: [] }
+  },
+  {
+    id: 'future_idol_128',
+    title: 'Future Idol 128',
+    artist: 'K-Pop AI Studio',
+    file: '/tracks/future_idol_128.mp3',
+    fileName: 'future_idol_128.mp3',
+    bpm: 128,
+    duration: 45,
+    analysis: { bpm: 128, duration: 45, beats: [] }
+  }
+];
+
 export class PlayerUI {
   constructor(audioEngine, danceEngine, sceneManager) {
     this.audioEngine = audioEngine;
@@ -665,15 +698,22 @@ export class PlayerUI {
   async fetchTracks() {
     try {
       const res = await fetch('/api/tracks');
-      const data = await res.json();
-      if (data.success && data.tracks && data.tracks.length > 0) {
-        this.tracks = data.tracks;
-        // Start on first track in elegant Idle pose (autoPlay = false)
-        this.selectTrack(0, false);
+      if (res.ok) {
+        const text = await res.text();
+        if (text && text.startsWith('{')) {
+          const data = JSON.parse(text);
+          if (data.success && data.tracks && data.tracks.length > 0) {
+            this.tracks = data.tracks;
+            this.selectTrack(0, false);
+            return;
+          }
+        }
       }
-    } catch (e) {
-      console.error('Error fetching initial tracks:', e);
-    }
+    } catch (e) {}
+
+    // Graceful built-in fallback tracks (instant, zero-latency on static Vercel edge)
+    this.tracks = BUILTIN_TRACKS;
+    this.selectTrack(0, false);
   }
 
   async selectTrack(index, autoPlay = true) {
