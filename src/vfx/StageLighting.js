@@ -184,18 +184,28 @@ export class StageLighting {
     const high = audioEngine ? audioEngine.getHighEnergy() : 0;
     const isPlaying = audioEngine ? audioEngine.isPlaying : false;
     const freqData = audioEngine?.frequencyData;
+    const bpm = audioEngine?.bpm || 120;
+    const beatProg = (audioEngine && typeof audioEngine.getBeatProgress === 'function')
+      ? audioEngine.getBeatProgress()
+      : ((time % (60.0 / bpm)) / (60.0 / bpm));
 
-    // 1. Update Floor pulse rings
+    // Crisp exponential transient impulses (exact attack on beat downbeat & snare upbeat)
+    const kickImpulse = Math.exp(-12.0 * beatProg);
+    const snareProg = Math.abs(beatProg - 0.5);
+    const snareImpulse = Math.exp(-14.0 * snareProg);
+
+    // 1. Update Floor pulse rings with crisp beat pulse
     this.pulseRings.forEach((ring, idx) => {
-      const scale = isPlaying ? (1.0 + (bass * 1.1) + Math.sin(time * 6 + idx) * 0.15) : 1.0;
+      const ringPulse = Math.exp(-10.0 * ((beatProg + idx * 0.08) % 1.0));
+      const scale = isPlaying ? (1.0 + bass * 0.9 + kickImpulse * 0.55) : 1.0;
       ring.scale.set(scale, scale, 1);
-      ring.material.opacity = isPlaying ? Math.min(1.0, 0.4 + bass * 0.8) : 0.25;
+      ring.material.opacity = isPlaying ? Math.min(1.0, 0.35 + bass * 0.65 + ringPulse * 0.40) : 0.25;
     });
 
-    // 2. Update Equalizer bars (Dynamic spectrum for both native FFT and loud YouTube/synthesis modes)
+    // 2. Update Equalizer pillars (stripes) with symmetrical spectral spread and zero-lag kick response
     let hasLiveFft = false;
     if (freqData && isPlaying) {
-      for (let k = 0; k < 48; k++) {
+      for (let k = 0; k < 32; k++) {
         if (freqData[k] > 0) {
           hasLiveFft = true;
           break;
@@ -203,37 +213,50 @@ export class StageLighting {
       }
     }
 
-    // 2. Update Equalizer pillars in a single batch (1 draw call!)
     if (this.equalizerInstancedMesh) {
       const numBars = this.barCount;
+      const halfBars = (numBars - 1) * 0.5;
+
       for (let i = 0; i < numBars; i++) {
         let targetScale = 0.08;
 
         if (isPlaying) {
+          // Symmetrical distance from center (0.0 at center directly behind dancers, 1.0 at outer wings)
+          const normDist = Math.abs(i - halfBars) / halfBars;
+          const centerWeight = Math.max(0, 1.0 - normDist * 1.25);
+          const midWeight = Math.sin(normDist * Math.PI);
+          const wingWeight = Math.pow(normDist, 1.4);
+
           if (hasLiveFft) {
-            const freqIdx = Math.floor((i / numBars) * (freqData.length * 0.45));
-            const val = (freqData[freqIdx] || 0) / 255.0;
-            targetScale = Math.max(0.12, Math.pow(val, 1.2) * 3.8 + bass * 1.5);
+            // Symmetrical frequency mapping: center = bass, flanks = mids, wings = treble
+            const binIdx = Math.floor(Math.pow(normDist, 1.4) * 90 + 1);
+            const val = (freqData[binIdx] || 0) / 255.0;
+
+            // Rhythmic transients: punchy kick pulse on center pillars, snare on flanks
+            const beatKick = kickImpulse * (2.2 + bass * 2.8) * (0.45 + centerWeight * 1.10);
+            const beatSnare = snareImpulse * (1.6 + mid * 2.0) * midWeight;
+            const freqHeight = Math.pow(val, 1.2) * 3.6;
+            targetScale = Math.max(0.12, freqHeight + beatKick + beatSnare);
           } else {
-            // Dynamic kinetic spectrum mapped to 48 pillars around stage
-            const normPos = Math.abs(i - numBars / 2) / (numBars / 2);
-            const bassWave = Math.sin(time * 12 + i * 0.45) * 0.35 + 0.65;
-            const bassPillar = Math.pow(bass, 1.4) * 3.5 * (1.0 - normPos * 0.3) * bassWave;
-
-            const midWave = Math.sin(time * 16 + i * 0.75) * 0.35 + 0.65;
-            const midPillar = Math.pow(mid, 1.3) * 2.6 * (0.3 + normPos * 0.7) * midWave;
-
-            const highWave = Math.sin(time * 26 + i * 1.2) * 0.4 + 0.6;
-            const highPillar = high * 1.6 * highWave;
-
-            targetScale = Math.max(0.12, (bassPillar + midPillar + highPillar) * 1.3);
+            // Synthetic beat-locked kinetic spectrum for YouTube and non-analysed audio
+            const beatKick = kickImpulse * (2.4 + bass * 3.0) * (0.5 + centerWeight * 1.0);
+            const beatSnare = snareImpulse * (1.8 + mid * 2.2) * midWeight;
+            const highPulse = Math.pow(Math.sin(beatProg * Math.PI * 2), 2.0) * high * 1.8 * wingWeight;
+            targetScale = Math.max(0.12, (beatKick + beatSnare + highPulse) * 1.25);
           }
         } else {
           // Idle gentle breathing wave
           targetScale = 0.08 + Math.sin(time * 2 + i * 0.3) * 0.03;
         }
 
-        this._barScales[i] += (targetScale - this._barScales[i]) * 0.35;
+        // Asymmetric attack/decay (zero-lag peak follower):
+        // On beat hits, rise INSTANTLY on that exact frame (0.92), then decay smoothly (0.20)
+        if (targetScale > this._barScales[i]) {
+          this._barScales[i] = THREE.MathUtils.lerp(this._barScales[i], targetScale, 0.92);
+        } else {
+          this._barScales[i] = THREE.MathUtils.lerp(this._barScales[i], targetScale, 0.20);
+        }
+
         const currentScaleY = this._barScales[i];
         const angle = this._barAngles[i];
 

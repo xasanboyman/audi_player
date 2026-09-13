@@ -18,6 +18,7 @@ export const AUTHENTIC_DANCE_LIBRARY = [
 
   // 2. Breakdance & Floor Bending Moves
   { id: 'breakdance_ending', title: 'Floor B-Boy Freeze & Drop', type: 'fbx', url: '/mocap/Breakdance_Ending_Floor.fbx', style: 'bending', energy: 0.94, isHighEnergy: true, nativeBpm: 92.6, phraseBeats: 10 },
+  { id: 'breakdance_ending_1', title: 'Breakdance B-Boy Freeze Drop 1', type: 'fbx', url: '/mocap/Breakdance_Ending_1.fbx', style: 'bending', energy: 0.93, isHighEnergy: true, nativeBpm: 95.0, phraseBeats: 10 },
   { id: 'breakdance_freeze_3', title: 'Power Freeze & Ground Spin', type: 'fbx', url: '/mocap/Ch24_nonPBR@Breakdance Freeze Var 3.fbx', style: 'bending', energy: 0.95, isHighEnergy: true, nativeBpm: 70.1, phraseBeats: 8 },
   { id: 'breakdance_flair', title: 'Acrobatic Gymnastic Flair', type: 'fbx', url: '/mocap/Ch24_nonPBR@Flair.fbx', style: 'bending', energy: 0.98, isHighEnergy: true, nativeBpm: 120.0, phraseBeats: 8 },
   { id: 'dance_breakdance_1990', title: '1990 Headspin & Ground Spin', type: 'retargeted', url: '/mocap/retargeted/dance_breakdance_1990.json', style: 'bending', energy: 0.96, isHighEnergy: true, nativeBpm: 132.4, phraseBeats: 8 },
@@ -82,12 +83,14 @@ export class DanceEngine {
     this.authenticLibrary = AUTHENTIC_DANCE_LIBRARY;
     this.parsedClipCache = new Map(); // url -> THREE.AnimationClip
 
-    // High-performance authentic mocap dance pools (34 verified full-body performances)
+    // High-performance authentic mocap dance pools (35 verified full-body performances)
     this.allClipsPool = [...AUTHENTIC_DANCE_LIBRARY];
-    this.energeticPool = AUTHENTIC_DANCE_LIBRARY.filter(p => p.isHighEnergy || p.style === 'phonk' || p.style === 'bending');
+    // Exclude floor bending moves from automatic energetic pool so dancers remain upright during auto play!
+    this.energeticPool = AUTHENTIC_DANCE_LIBRARY.filter(p => (p.isHighEnergy || p.style === 'phonk') && p.style !== 'bending');
     this.calmPool = AUTHENTIC_DANCE_LIBRARY.filter(p => p.style === 'chill' || (!p.isHighEnergy && p.style !== 'bending'));
     this.vocalPool = AUTHENTIC_DANCE_LIBRARY.filter(p => p.style === 'idol' || p.style === 'expressive');
     this.groovePool = AUTHENTIC_DANCE_LIBRARY.filter(p => p.style === 'groove' || p.style === 'idol');
+    this.bendingPool = AUTHENTIC_DANCE_LIBRARY.filter(p => p.style === 'bending');
 
     // Event listeners
     this._listeners = new Map();
@@ -298,7 +301,7 @@ export class DanceEngine {
       pool = this.groovePool;
       detectedMood = 'groove';
     } else if (this.danceStyle === 'bending') {
-      pool = this.energeticPool.filter(p => p.category === 'body_bend_bow' || p.category === 'spin' || p.style === 'bending');
+      pool = this.bendingPool;
       detectedMood = 'energetic';
     } else if (this.danceStyle === 'expressive') {
       pool = this.vocalPool.filter(p => p.category === 'expressive_acting' || p.category === 'wave_hands' || p.style === 'expressive');
@@ -512,21 +515,38 @@ export class DanceEngine {
   /**
    * Kinematic Tempo Scaler:
    * Maps authentic motion recording tempo (nativeBpm) to the music tempo (musicBpm)
-   * with harmonic octave adjustment (half-time / double-time matching) so dancers
-   * step and bounce in 100% exact synchronization with the song's beat.
+   * with musical phrase quantization so dancers step and bounce in 100% exact synchronization with the song's beat.
    */
   calcTempo(clip, perfMeta) {
     if (!clip || !clip.duration) return 1.0;
     const musicBpm = Math.max(60, Math.min(220, this.audioEngine.bpm || 120));
-    const nativeBpm = perfMeta?.nativeBpm || 110;
+    const beatPeriod = 60.0 / musicBpm;
+    const dur = clip.duration;
 
-    let ratio = musicBpm / nativeBpm;
-    // Harmonic octave adjustment (half-time or double-time)
-    while (ratio < 0.72) ratio *= 2.0;
-    while (ratio > 1.45) ratio *= 0.5;
+    // Phrase quantization: identify closest harmonic phrase (4, 6, 8, 12, 16, 24, 32, 48 beats)
+    let targetBeats = perfMeta?.phraseBeats;
+    if (!targetBeats || targetBeats <= 0) {
+      const rawBeats = dur / beatPeriod;
+      const phraseSteps = [4, 6, 8, 10, 12, 16, 20, 24, 32, 40, 48, 64];
+      targetBeats = phraseSteps[0];
+      let minDiff = Math.abs(rawBeats - phraseSteps[0]);
+      for (let i = 1; i < phraseSteps.length; i++) {
+        const diff = Math.abs(rawBeats - phraseSteps[i]);
+        if (diff < minDiff) {
+          minDiff = diff;
+          targetBeats = phraseSteps[i];
+        }
+      }
+    }
 
-    // Keep mocap natural and human while locking to the beat
-    return Math.max(0.75, Math.min(1.35, ratio));
+    const idealDuration = targetBeats * beatPeriod;
+    let ratio = dur / idealDuration;
+
+    // Musically sound half-time or double-time adjustments
+    while (ratio > 1.25) ratio *= 0.5;
+    while (ratio < 0.75) ratio *= 2.0;
+
+    return Math.max(0.78, Math.min(1.25, ratio));
   }
 
   /**
@@ -553,6 +573,9 @@ export class DanceEngine {
 
     const bpm = this.audioEngine.bpm || 120;
     const beatPeriod = 60.0 / bpm; // duration of 1 beat in seconds
+    const beatProg = (this.audioEngine && typeof this.audioEngine.getBeatProgress === 'function')
+      ? this.audioEngine.getBeatProgress()
+      : ((this.audioEngine.currentTime % beatPeriod) / beatPeriod);
 
     // Musical crossfade duration:
     // Floor moves and standing up use a smooth 1.35s transition for natural rising without snapping
@@ -596,14 +619,16 @@ export class DanceEngine {
     this.currentPerformanceLead = leadPerf;
     if (clipLead && this.dancerLead) {
       const tempoScaleLead = this.calcTempo(clipLead, leadPerf);
-      this.dancerLead.crossfadeToClip(clipLead, fadeDurationLead, tempoScaleLead);
+      const entryTimeLead = (beatProg * beatPeriod) * tempoScaleLead;
+      this.dancerLead.crossfadeToClip(clipLead, fadeDurationLead, tempoScaleLead, entryTimeLead);
     }
 
     if (this.dancerPartner && partnerPerf) {
       this.currentPerformancePartner = partnerPerf;
       if (clipPartner) {
         const tempoScalePartner = this.calcTempo(clipPartner, partnerPerf);
-        this.dancerPartner.crossfadeToClip(clipPartner, fadeDurationPartner, tempoScalePartner);
+        const entryTimePartner = (beatProg * beatPeriod) * tempoScalePartner;
+        this.dancerPartner.crossfadeToClip(clipPartner, fadeDurationPartner, tempoScalePartner, entryTimePartner);
       }
     }
 
@@ -634,6 +659,9 @@ export class DanceEngine {
 
     const bpm = this.audioEngine.bpm || 120;
     const beatPeriod = 60.0 / bpm;
+    const beatProg = (this.audioEngine && typeof this.audioEngine.getBeatProgress === 'function')
+      ? this.audioEngine.getBeatProgress()
+      : ((this.audioEngine.currentTime % beatPeriod) / beatPeriod);
     const fadeDurationLead = isFloorLead ? 1.35 : Math.max(0.70, Math.min(1.10, beatPeriod * 2.0));
     const fadeDurationPartner = isFloorPartner ? 1.35 : Math.max(0.70, Math.min(1.10, beatPeriod * 2.0));
 
@@ -644,10 +672,14 @@ export class DanceEngine {
     if (seq !== this._choreographySeq) return;
 
     if (clipLead && this.dancerLead) {
-      this.dancerLead.crossfadeToClip(clipLead, fadeDurationLead, this.calcTempo(clipLead, perf));
+      const tempoScaleLead = this.calcTempo(clipLead, perf);
+      const entryTimeLead = (beatProg * beatPeriod) * tempoScaleLead;
+      this.dancerLead.crossfadeToClip(clipLead, fadeDurationLead, tempoScaleLead, entryTimeLead);
     }
     if (clipPartner && this.dancerPartner) {
-      this.dancerPartner.crossfadeToClip(clipPartner, fadeDurationPartner, this.calcTempo(clipPartner, partnerPerf));
+      const tempoScalePartner = this.calcTempo(clipPartner, partnerPerf);
+      const entryTimePartner = (beatProg * beatPeriod) * tempoScalePartner;
+      this.dancerPartner.crossfadeToClip(clipPartner, fadeDurationPartner, tempoScalePartner, entryTimePartner);
     }
     console.log(`💃 Harmonized Performance -> Lead: [${perf.title}] | Partner: [${partnerPerf.title}]`);
   }

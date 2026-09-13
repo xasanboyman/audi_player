@@ -718,6 +718,7 @@ export class PlayerUI {
 
   async selectTrack(index, autoPlay = true) {
     if (index < 0 || index >= this.tracks.length) return;
+    const seq = ++this._selectTrackSeq;
     this.currentTrackIndex = index;
     const track = this.tracks[index];
 
@@ -727,13 +728,17 @@ export class PlayerUI {
     if (this.ovBpm) this.ovBpm.textContent = (track.bpm || 120).toFixed(1);
 
     await this.audioEngine.loadTrack(track);
+    if (seq !== this._selectTrackSeq) return;
 
     if (autoPlay) {
       try {
         await this.audioEngine.play();
+        if (seq !== this._selectTrackSeq) return;
         await this.danceEngine.selectNextChoreography(true);
       } catch (err) {
-        console.warn('AutoPlay prevented or interrupted:', err);
+        if (err?.name !== 'AbortError') {
+          console.warn('AutoPlay prevented or interrupted:', err);
+        }
         await this.danceEngine.playIdle(0.3);
       }
     } else {

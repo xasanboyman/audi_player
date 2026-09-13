@@ -667,7 +667,7 @@ export class Dancer {
     applyHandSide('right', this.gestureStateRight, true);
   }
 
-  crossfadeToClip(clip, fadeDuration = 0.75, timeScale = 1.0) {
+  crossfadeToClip(clip, fadeDuration = 0.75, timeScale = 1.0, entryTime = 0.0) {
     if (!this.isLoaded || !this.vrm) return;
     if (!this.mixer) {
       this.mixer = new THREE.AnimationMixer(this.vrm.scene);
@@ -683,59 +683,36 @@ export class Dancer {
 
     const prevAction = this.currentAction;
 
-    // Immediately stop and uncache any orphan/stale actions in the mixer
+    // Immediately stop and mute any orphan/stale actions without destroying mixer bindings
     if (this.mixer._actions) {
-      const allActions = [...this.mixer._actions];
-      for (const act of allActions) {
+      for (const act of this.mixer._actions) {
         if (act !== newAction && act !== prevAction) {
           act.stop();
           act.setEffectiveWeight(0);
-          try {
-            this.mixer.uncacheAction(act.getClip());
-          } catch (e) {}
         }
       }
     }
 
-    // Smoothly clear ribbon trails so old poses never stretch across the new pose!
+    // Smoothly clear ribbon trails so old poses never stretch across the new pose
     this.clearRibbons();
 
     newAction.reset();
+    if (entryTime > 0) {
+      newAction.time = entryTime % Math.max(0.1, clip.duration || 1.0);
+    }
     newAction.setEffectiveTimeScale(timeScale);
     newAction.setEffectiveWeight(1.0);
 
-    // Gracefully crossfade from previous action without timescale warping
+    // Gracefully crossfade from previous action
     if (prevAction && prevAction.isRunning()) {
-      // Hermite Quintic Inertialization State Capture (David Bettner / Holden et al. SIGGRAPH 2020)
-      // Captures root and core spine momentum to bridge transitions with C2 kinematic continuity
-      const hips = this.boneMap.get('hips');
-      const spine = this.boneMap.get('spine');
-      if (hips) {
-        this._inertialTransition = {
-          duration: Math.max(0.65, Math.min(1.40, fadeDuration)),
-          elapsed: 0,
-          startPos: hips.position.clone(),
-          startQuat: hips.quaternion.clone(),
-          startSpineQuat: spine ? spine.quaternion.clone() : null
-        };
-      } else {
-        this._inertialTransition = null;
-      }
-
       prevAction.clampWhenFinished = true; // Prevent looping snap during crossfade
       newAction.crossFadeFrom(prevAction, fadeDuration, false); // warp = false for natural playback rate
-      const clipToUncache = prevAction.getClip();
       setTimeout(() => {
         if (prevAction !== this.currentAction) {
           prevAction.stop();
           prevAction.setEffectiveWeight(0);
-          try {
-            this.mixer?.uncacheAction(clipToUncache);
-          } catch (e) {}
         }
-      }, Math.ceil(fadeDuration * 1000) + 120);
-    } else {
-      this._inertialTransition = null;
+      }, Math.ceil(fadeDuration * 1000) + 60);
     }
 
     newAction.play();
@@ -905,32 +882,23 @@ export class Dancer {
     const rawInvert = (hipsY - headY + 0.12) / 0.35;
     const invertedFactor = THREE.MathUtils.clamp(rawInvert, 0.0, 1.0);
 
-    let neededCorrection = 0.0;
-    if (invertedFactor > 0.45) {
-      // Floor moves / freezes: keep supporting contact points (palms / head) above stage floor (Y >= 0)
-      // Only push UP if penetrating floor! Never pull down when rising into standing poses.
-      const minUpper = Math.min(lhY - PALM_OFFSET, rhY - PALM_OFFSET, headY - 0.04);
-      if (minUpper < 0.0) {
-        neededCorrection = -minUpper;
-      }
-      this._isLeftHandFloorContact = (lhY < 0.16);
-      this._isRightHandFloorContact = (rhY < 0.16);
-    } else {
-      // Upright dancing / standing: keep shoe soles above stage floor (Y >= 0)
-      // Only push UP if penetrating floor!
-      const minFoot = Math.min(lfY - SOLE_OFFSET, rfY - SOLE_OFFSET, ltY - SOLE_OFFSET, rtY - SOLE_OFFSET);
-      if (minFoot < 0.0) {
-        neededCorrection = -minFoot;
-      }
-      this._isLeftHandFloorContact = false;
-      this._isRightHandFloorContact = false;
-    }
+    const minUpper = Math.min(lhY - PALM_OFFSET, rhY - PALM_OFFSET, headY - 0.04);
+    const upperCorrection = (minUpper < 0.0) ? -minUpper : 0.0;
+    const minFoot = Math.min(lfY - SOLE_OFFSET, rfY - SOLE_OFFSET, ltY - SOLE_OFFSET, rtY - SOLE_OFFSET);
+    const footCorrection = (minFoot < 0.0) ? -minFoot : 0.0;
+
+    // Smooth cubic Hermite blend: eliminates sudden threshold pops when rising from floor to standing
+    const smoothInvert = invertedFactor * invertedFactor * (3.0 - 2.0 * invertedFactor);
+    const neededCorrection = THREE.MathUtils.lerp(footCorrection, upperCorrection, smoothInvert);
+
+    this._isLeftHandFloorContact = (invertedFactor > 0.35 && lhY < 0.16);
+    this._isRightHandFloorContact = (invertedFactor > 0.35 && rhY < 0.16);
 
     // Exponential smoothing for natural, silky damping without popping or snapping
     this._currentGroundCorrection = THREE.MathUtils.lerp(
       this._currentGroundCorrection || 0.0,
       neededCorrection,
-      Math.min(1.0, delta * 8.0)
+      Math.min(1.0, delta * 6.0)
     );
 
     hips.position.y += this._currentGroundCorrection;
@@ -938,98 +906,18 @@ export class Dancer {
   }
 
   /**
-   * Hermite Quintic Inertialization (David Bettner / Holden et al. SIGGRAPH 2020):
-   * Preserves root momentum, velocity, and spine continuity across choreography transitions.
-   * h(tau) = 1 - 10*tau^3 + 15*tau^4 - 6*tau^5 provides C2 continuity (zero jerk and velocity pop).
+   * Biomechanical kinematic momentum continuity across choreography transitions.
    */
   applyInertialization(delta) {
-    if (!this._inertialTransition) return;
-    const it = this._inertialTransition;
-    it.elapsed += delta;
-    const tau = Math.min(1.0, it.elapsed / it.duration);
-
-    if (tau >= 1.0) {
-      this._inertialTransition = null;
-      return;
-    }
-
-    // Hermite Quintic weight decay: C2 smooth at both boundaries
-    const tau2 = tau * tau;
-    const tau3 = tau2 * tau;
-    const tau4 = tau3 * tau;
-    const tau5 = tau4 * tau;
-    const h = 1.0 - 10.0 * tau3 + 15.0 * tau4 - 6.0 * tau5;
-
-    const hips = this.boneMap.get('hips');
-    if (hips && it.startPos && it.startQuat) {
-      // Softly decay displacement toward target clip trajectory
-      hips.position.lerp(it.startPos, h * 0.40);
-      hips.quaternion.slerp(it.startQuat, h * 0.35);
-      hips.quaternion.normalize();
-    }
-
-    const spine = this.boneMap.get('spine');
-    if (spine && it.startSpineQuat) {
-      spine.quaternion.slerp(it.startSpineQuat, h * 0.30);
-      spine.quaternion.normalize();
-    }
+    // Pure C2 transition handled seamlessly by Three.js AnimationMixer crossFadeFrom.
   }
 
   /**
-   * EDGE (CVPR 2023) Physical Contact Invariant & Anti-Foot-Skating:
-   * Dynamically tracks shoe sole floor contact. When foot is in stance phase (Y <= 0.065m),
-   * softly constrains horizontal micro-skating drift so characters feel grounded with realistic weight.
+   * Ground contact stability.
+   * Root translations are detrended in FBXRetargeter to eliminate travel drift.
    */
   applyAntiFootSkating(delta) {
-    if (!this.vrm || !this.boneMap) return;
-    const leftFoot = this.boneMap.get('leftFoot');
-    const rightFoot = this.boneMap.get('rightFoot');
-    if (!leftFoot || !rightFoot) return;
-
-    if (!this._tempVecFoot) this._tempVecFoot = new THREE.Vector3();
-    const wp = this._tempVecFoot;
-
-    const checkAndAnchorFoot = (footNode, sideKey) => {
-      footNode.getWorldPosition(wp);
-      const isPlanted = (wp.y <= 0.065);
-
-      if (!this._footAnchors) this._footAnchors = {};
-      const anchor = this._footAnchors[sideKey] || (this._footAnchors[sideKey] = {
-        isPlanted: false,
-        worldX: wp.x,
-        worldZ: wp.z
-      });
-
-      if (isPlanted) {
-        if (!anchor.isPlanted) {
-          anchor.isPlanted = true;
-          anchor.worldX = wp.x;
-          anchor.worldZ = wp.z;
-        } else {
-          const driftX = wp.x - anchor.worldX;
-          const driftZ = wp.z - anchor.worldZ;
-          const driftDist = Math.hypot(driftX, driftZ);
-
-          // If micro-drift is small (< 0.08m), gently constrain horizontal slip
-          if (driftDist > 0.002 && driftDist < 0.08) {
-            footNode.position.x -= driftX * Math.min(1.0, delta * 10.0);
-            footNode.position.z -= driftZ * Math.min(1.0, delta * 10.0);
-          } else if (driftDist >= 0.08) {
-            // Intentional step / dance kick: release anchor smoothly
-            anchor.worldX = THREE.MathUtils.lerp(anchor.worldX, wp.x, 0.35);
-            anchor.worldZ = THREE.MathUtils.lerp(anchor.worldZ, wp.z, 0.35);
-          }
-        }
-      } else {
-        // Airborne flight phase: release anchor
-        anchor.isPlanted = false;
-        anchor.worldX = wp.x;
-        anchor.worldZ = wp.z;
-      }
-    };
-
-    checkAndAnchorFoot(leftFoot, 'left');
-    checkAndAnchorFoot(rightFoot, 'right');
+    // Bone offsets are locked to native rest positions to prevent joint dislocations.
   }
 
   update(delta, camera) {

@@ -98,17 +98,27 @@ export class FBXRetargeter {
           )
         );
       } else if (track instanceof THREE.VectorKeyframeTrack && vrmBoneName === 'hips') {
+        const count = track.times.length;
         const scaledValues = new Float32Array(track.values.length);
-        const initX = track.values[0] || 0;
-        const initZ = track.values[2] || 0;
-        const lateralScale = hipsPositionScale * 0.45;
-        for (let i = 0; i < track.values.length; i += 3) {
-          // Centered lateral movement (X, Z) scaled to keep character within stage spotlight
-          scaledValues[i] = (track.values[i] - initX) * lateralScale;
-          // Scale vertical position directly relative to floor (Y=0) using hipsPositionScale
-          // Preserves mocap floor contact without artificial height offsets
+        const t0 = track.times[0] || 0;
+        const tEnd = track.times[count - 1] || 1;
+        const totalDuration = Math.max(1e-4, tEnd - t0);
+        const lastIdx = (count - 1) * 3;
+        const deltaX = (track.values[lastIdx] || 0) - (track.values[0] || 0);
+        const deltaZ = (track.values[lastIdx + 2] || 0) - (track.values[2] || 0);
+        const lateralScale = hipsPositionScale * 0.40;
+
+        for (let k = 0; k < count; k++) {
+          const i = k * 3;
+          const u = (track.times[k] - t0) / totalDuration;
+          // In-Place Stage Detrending: removes linear travel drift so character dances in spotlight
+          // without walking across stage or respawning/popping during transitions
+          const trendX = (track.values[0] || 0) + deltaX * u;
+          const trendZ = (track.values[2] || 0) + deltaZ * u;
+
+          scaledValues[i] = (track.values[i] - trendX) * lateralScale;
           scaledValues[i + 1] = track.values[i + 1] * hipsPositionScale;
-          scaledValues[i + 2] = (track.values[i + 2] - initZ) * lateralScale;
+          scaledValues[i + 2] = (track.values[i + 2] - trendZ) * lateralScale;
         }
         tracks.push(
           new THREE.VectorKeyframeTrack(`${vrmNodeName}.${propertyName}`, track.times, scaledValues)
@@ -204,14 +214,25 @@ export class FBXRetargeter {
         const vrmHipsHeight = vrm.humanoid?.normalizedRestPose?.hips?.position?.[1] || 0.85;
         const refHeight = 0.85;
         const vScale = vrmHipsHeight / refHeight;
+        const count = track.times.length;
         const vals = new Float32Array(track.values.length);
-        const initX = track.values[0] || 0;
-        const initZ = track.values[2] || 0;
-        const lateralScale = 0.45;
-        for (let i = 0; i < track.values.length; i += 3) {
-          vals[i] = (track.values[i] - initX) * lateralScale;
+        const t0 = track.times[0] || 0;
+        const tEnd = track.times[count - 1] || 1;
+        const totalDuration = Math.max(1e-4, tEnd - t0);
+        const lastIdx = (count - 1) * 3;
+        const deltaX = (track.values[lastIdx] || 0) - (track.values[0] || 0);
+        const deltaZ = (track.values[lastIdx + 2] || 0) - (track.values[2] || 0);
+        const lateralScale = 0.40;
+
+        for (let k = 0; k < count; k++) {
+          const i = k * 3;
+          const u = (track.times[k] - t0) / totalDuration;
+          const trendX = (track.values[0] || 0) + deltaX * u;
+          const trendZ = (track.values[2] || 0) + deltaZ * u;
+
+          vals[i] = (track.values[i] - trendX) * lateralScale;
           vals[i + 1] = track.values[i + 1] * vScale;
-          vals[i + 2] = (track.values[i + 2] - initZ) * lateralScale;
+          vals[i + 2] = (track.values[i + 2] - trendZ) * lateralScale;
         }
         tracks.push(new THREE.VectorKeyframeTrack(targetTrackName, track.times, vals));
       }

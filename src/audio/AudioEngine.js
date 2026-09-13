@@ -146,7 +146,7 @@ export class AudioEngine {
       
       this.analyser = this.audioCtx.createAnalyser();
       this.analyser.fftSize = this.fftSize;
-      this.analyser.smoothingTimeConstant = 0.8;
+      this.analyser.smoothingTimeConstant = 0.25;
 
       this.gainNode = this.audioCtx.createGain();
       this.gainNode.gain.value = 1.0;
@@ -535,6 +535,10 @@ export class AudioEngine {
       await this.audio.play();
       return true;
     } catch (err) {
+      if (err && (err.name === 'AbortError' || err.message?.includes('interrupted by a new load request'))) {
+        // Interrupted by an immediate subsequent track load; safe to ignore
+        return false;
+      }
       console.warn('AudioEngine.play() rejected or prevented:', err.message);
       this.isPlaying = false;
       this._emitPlayState(false);
