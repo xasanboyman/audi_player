@@ -11,9 +11,9 @@ const BUILTIN_TRACKS = [
     artist: 'Cyber Funk',
     file: '/tracks/brawl_stars_phonk.mp3',
     fileName: 'brawl_stars_phonk.mp3',
-    bpm: 99.4,
+    bpm: 142.2,
     duration: 110.36,
-    analysis: { bpm: 99.4, duration: 110.36, beats: [] }
+    analysis: { bpm: 142.2, duration: 110.36, beats: [] }
   },
   {
     id: 'cyber_phonk_140',
