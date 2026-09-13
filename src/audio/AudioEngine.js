@@ -353,24 +353,37 @@ export class AudioEngine {
     const beats = this.currentTrack?.analysis?.beats;
     const t = this.currentTime;
     if (beats && beats.length > 1) {
-      const idx = this.currentBeatIndex;
-      if (idx >= 0 && idx < beats.length - 1) {
-        const b0 = beats[idx];
-        const b1 = beats[idx + 1];
-        if (b1 > b0 && t >= b0 && t <= b1) {
-          return (t - b0) / (b1 - b0);
+      if (t <= beats[0]) {
+        const p0 = beats.length > 1 ? (beats[1] - beats[0]) : (60.0 / (this.bpm || 120));
+        const diff = (beats[0] - t) % p0;
+        return ((p0 - diff) % p0) / p0;
+      }
+      const lastIdx = beats.length - 1;
+      if (t >= beats[lastIdx]) {
+        const pEnd = (beats[lastIdx] - beats[lastIdx - 1]) || (60.0 / (this.bpm || 120));
+        return ((t - beats[lastIdx]) % pEnd) / pEnd;
+      }
+
+      // Exact O(log N) binary search for active beat interval [b0, b1]
+      let low = 0, high = lastIdx;
+      while (low <= high) {
+        const mid = (low + high) >> 1;
+        if (beats[mid] <= t) {
+          low = mid + 1;
+        } else {
+          high = mid - 1;
         }
       }
-      const firstBeat = beats[0] || 0;
-      const beatPeriod = 60.0 / (this.bpm || 120);
-      if (t < firstBeat) {
-        const diff = (firstBeat - t) % beatPeriod;
-        return (beatPeriod - diff) / beatPeriod;
+      const idx = Math.max(0, high);
+      const b0 = beats[idx];
+      const b1 = beats[idx + 1] || (b0 + 60.0 / (this.bpm || 120));
+      if (b1 > b0) {
+        return Math.max(0.0, Math.min(0.9999, (t - b0) / (b1 - b0)));
       }
-      return ((t - firstBeat) % beatPeriod) / beatPeriod;
     }
     const beatPeriod = 60.0 / (this.bpm || 120);
-    return (t % beatPeriod) / beatPeriod;
+    const mod = ((t % beatPeriod) + beatPeriod) % beatPeriod;
+    return mod / beatPeriod;
   }
 
   /**

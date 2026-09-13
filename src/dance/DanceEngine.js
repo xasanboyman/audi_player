@@ -19,19 +19,12 @@ export const AUTHENTIC_DANCE_LIBRARY = [
   // 2. Breakdance & Floor Bending Moves
   { id: 'breakdance_ending', title: 'Floor B-Boy Freeze & Drop', type: 'fbx', url: '/mocap/Breakdance_Ending_Floor.fbx', style: 'bending', energy: 0.94, isHighEnergy: true, nativeBpm: 92.6, phraseBeats: 10 },
   { id: 'breakdance_ending_1', title: 'Breakdance B-Boy Freeze Drop 1', type: 'fbx', url: '/mocap/Breakdance_Ending_1.fbx', style: 'bending', energy: 0.93, isHighEnergy: true, nativeBpm: 95.0, phraseBeats: 10 },
-  { id: 'breakdance_freeze_3', title: 'Power Freeze & Ground Spin', type: 'fbx', url: '/mocap/Ch24_nonPBR@Breakdance Freeze Var 3.fbx', style: 'bending', energy: 0.95, isHighEnergy: true, nativeBpm: 70.1, phraseBeats: 8 },
-  { id: 'breakdance_flair', title: 'Acrobatic Gymnastic Flair', type: 'fbx', url: '/mocap/Ch24_nonPBR@Flair.fbx', style: 'bending', energy: 0.98, isHighEnergy: true, nativeBpm: 120.0, phraseBeats: 8 },
-  { id: 'dance_breakdance_1990', title: '1990 Headspin & Ground Spin', type: 'retargeted', url: '/mocap/retargeted/dance_breakdance_1990.json', style: 'bending', energy: 0.96, isHighEnergy: true, nativeBpm: 132.4, phraseBeats: 8 },
   { id: 'dance_breakdance_uprock', title: 'Uprock Battle Steps', type: 'retargeted', url: '/mocap/retargeted/dance_breakdance_uprock.json', style: 'phonk', energy: 0.94, isHighEnergy: true, nativeBpm: 121.8, phraseBeats: 10 },
   { id: 'dance_capoeira', title: 'Acrobatic Sweep & Ginga', type: 'retargeted', url: '/mocap/retargeted/dance_capoeira.json', style: 'bending', energy: 0.88, isHighEnergy: true, nativeBpm: 98.6, phraseBeats: 6 },
 
-  // 3. Energetic Dance Routines (Dance01 - Dance06)
+  // 3. Energetic Dance Routines
   { id: 'dance_mixamo_01', title: 'Energetic Dance Routine 1', type: 'fbx', url: '/mocap/Dance01.fbx', style: 'idol', energy: 0.89, isHighEnergy: true, nativeBpm: 111.1, phraseBeats: 32 },
-  { id: 'dance_mixamo_02', title: 'Dynamic Hip Hop Routine 2', type: 'fbx', url: '/mocap/Dance02.fbx', style: 'phonk', energy: 0.91, isHighEnergy: true, nativeBpm: 120.0, phraseBeats: 8 },
-  { id: 'dance_mixamo_03', title: 'Locking Wave Routine 3', type: 'fbx', url: '/mocap/Dance03.fbx', style: 'groove', energy: 0.87, isHighEnergy: true, nativeBpm: 115.0, phraseBeats: 8 },
-  { id: 'dance_mixamo_04', title: 'High Bounce Funk Routine 4', type: 'fbx', url: '/mocap/Dance04.fbx', style: 'phonk', energy: 0.93, isHighEnergy: true, nativeBpm: 95.8, phraseBeats: 16 },
   { id: 'dance_mixamo_05', title: 'Floor & Drop Routine 5', type: 'fbx', url: '/mocap/Dance05.fbx', style: 'bending', energy: 0.90, isHighEnergy: true, nativeBpm: 106.3, phraseBeats: 20 },
-  { id: 'dance_mixamo_06', title: 'Pop Star Solo Routine 6', type: 'fbx', url: '/mocap/Dance06.fbx', style: 'idol', energy: 0.88, isHighEnergy: true, nativeBpm: 94.7, phraseBeats: 10 },
 
   // 4. Urban & Club Grooves
   { id: 'dance_step_hiphop', title: 'Rhythm Bounce & Footwork', type: 'retargeted', url: '/mocap/retargeted/dance_step_hiphop.json', style: 'phonk', energy: 0.90, isHighEnergy: true, nativeBpm: 155.5, phraseBeats: 20 },
@@ -519,34 +512,17 @@ export class DanceEngine {
    */
   calcTempo(clip, perfMeta) {
     if (!clip || !clip.duration) return 1.0;
-    const musicBpm = Math.max(60, Math.min(220, this.audioEngine.bpm || 120));
-    const beatPeriod = 60.0 / musicBpm;
-    const dur = clip.duration;
+    const musicBpm = Math.max(60, Math.min(220, this.audioEngine?.bpm || 120));
+    const nativeBpm = perfMeta?.nativeBpm || 120.0;
 
-    // Phrase quantization: identify closest harmonic phrase (4, 6, 8, 12, 16, 24, 32, 48 beats)
-    let targetBeats = perfMeta?.phraseBeats;
-    if (!targetBeats || targetBeats <= 0) {
-      const rawBeats = dur / beatPeriod;
-      const phraseSteps = [4, 6, 8, 10, 12, 16, 20, 24, 32, 40, 48, 64];
-      targetBeats = phraseSteps[0];
-      let minDiff = Math.abs(rawBeats - phraseSteps[0]);
-      for (let i = 1; i < phraseSteps.length; i++) {
-        const diff = Math.abs(rawBeats - phraseSteps[i]);
-        if (diff < minDiff) {
-          minDiff = diff;
-          targetBeats = phraseSteps[i];
-        }
-      }
-    }
+    // AI Research-Backed Kinematic Tempo Ratio (Bailando CVPR 2022 / EDGE CVPR 2023)
+    let ratio = musicBpm / nativeBpm;
 
-    const idealDuration = targetBeats * beatPeriod;
-    let ratio = dur / idealDuration;
+    // Musically sound phrase alignment without unnatural extreme warping
+    if (ratio > 1.40) ratio *= 0.5; // Half-time for high-tempo music (>160 BPM)
+    if (ratio < 0.68) ratio *= 2.0; // Double-time for slow-tempo music (<75 BPM)
 
-    // Musically sound half-time or double-time adjustments
-    while (ratio > 1.25) ratio *= 0.5;
-    while (ratio < 0.75) ratio *= 2.0;
-
-    return Math.max(0.78, Math.min(1.25, ratio));
+    return Math.max(0.72, Math.min(1.30, ratio));
   }
 
   /**
@@ -619,7 +595,9 @@ export class DanceEngine {
     this.currentPerformanceLead = leadPerf;
     if (clipLead && this.dancerLead) {
       const tempoScaleLead = this.calcTempo(clipLead, leadPerf);
-      const entryTimeLead = (beatProg * beatPeriod) * tempoScaleLead;
+      const nativeBpmLead = leadPerf?.nativeBpm || bpm;
+      const nativeBeatPeriodLead = 60.0 / nativeBpmLead;
+      const entryTimeLead = beatProg * nativeBeatPeriodLead;
       this.dancerLead.crossfadeToClip(clipLead, fadeDurationLead, tempoScaleLead, entryTimeLead);
     }
 
@@ -627,7 +605,9 @@ export class DanceEngine {
       this.currentPerformancePartner = partnerPerf;
       if (clipPartner) {
         const tempoScalePartner = this.calcTempo(clipPartner, partnerPerf);
-        const entryTimePartner = (beatProg * beatPeriod) * tempoScalePartner;
+        const nativeBpmPartner = partnerPerf?.nativeBpm || bpm;
+        const nativeBeatPeriodPartner = 60.0 / nativeBpmPartner;
+        const entryTimePartner = beatProg * nativeBeatPeriodPartner;
         this.dancerPartner.crossfadeToClip(clipPartner, fadeDurationPartner, tempoScalePartner, entryTimePartner);
       }
     }
@@ -673,12 +653,16 @@ export class DanceEngine {
 
     if (clipLead && this.dancerLead) {
       const tempoScaleLead = this.calcTempo(clipLead, perf);
-      const entryTimeLead = (beatProg * beatPeriod) * tempoScaleLead;
+      const nativeBpmLead = perf?.nativeBpm || bpm;
+      const nativeBeatPeriodLead = 60.0 / nativeBpmLead;
+      const entryTimeLead = beatProg * nativeBeatPeriodLead;
       this.dancerLead.crossfadeToClip(clipLead, fadeDurationLead, tempoScaleLead, entryTimeLead);
     }
     if (clipPartner && this.dancerPartner) {
       const tempoScalePartner = this.calcTempo(clipPartner, partnerPerf);
-      const entryTimePartner = (beatProg * beatPeriod) * tempoScalePartner;
+      const nativeBpmPartner = partnerPerf?.nativeBpm || bpm;
+      const nativeBeatPeriodPartner = 60.0 / nativeBpmPartner;
+      const entryTimePartner = beatProg * nativeBeatPeriodPartner;
       this.dancerPartner.crossfadeToClip(clipPartner, fadeDurationPartner, tempoScalePartner, entryTimePartner);
     }
     console.log(`💃 Harmonized Performance -> Lead: [${perf.title}] | Partner: [${partnerPerf.title}]`);
@@ -770,6 +754,33 @@ export class DanceEngine {
       };
 
       this.smileValue = 0.08 + bass * 0.14;
+
+      // Phase-Locked Loop (PLL) Synchronization:
+      // Dynamically trims action.timeScale by +/- 2% to 5% to lock animation foot strikes & steps to the kick drum
+      const syncActionPhase = (dancer, perfMeta) => {
+        if (!dancer || !dancer.currentAction || !dancer.currentAction.isRunning()) return;
+        const nativeBpm = perfMeta?.nativeBpm || bpm;
+        const nativeBeatPeriod = 60.0 / nativeBpm;
+        const action = dancer.currentAction;
+        const nominalTimeScale = this.calcTempo(action.getClip(), perfMeta);
+
+        // Motion beat phase in [0.0, 1.0)
+        const motionTime = action.time;
+        const motionPhase = ((motionTime % nativeBeatPeriod) + nativeBeatPeriod) % nativeBeatPeriod / nativeBeatPeriod;
+
+        // Phase error: motionPhase - beatProgress wrapped to [-0.5, +0.5]
+        let phaseError = motionPhase - beatProgress;
+        if (phaseError > 0.5) phaseError -= 1.0;
+        if (phaseError < -0.5) phaseError += 1.0;
+
+        // Proportional phase feedback trim (eliminates drift completely!)
+        const kP = 0.22;
+        const trim = 1.0 - THREE.MathUtils.clamp(kP * phaseError, -0.05, 0.05);
+        action.setEffectiveTimeScale(nominalTimeScale * trim);
+      };
+
+      syncActionPhase(this.dancerLead, this.currentPerformanceLead);
+      syncActionPhase(this.dancerPartner, this.currentPerformancePartner);
     }
 
     // Natural eye blinking

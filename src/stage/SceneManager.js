@@ -201,12 +201,9 @@ export class SceneManager {
     }
     this._lastRenderTime = now;
 
-    const rawDelta = Math.min((now - this.lastFrameTime) * 0.001, 0.033);
+    const realDelta = Math.max(0.001, Math.min((now - this.lastFrameTime) * 0.001, 0.066));
     this.lastFrameTime = now;
-    this.smoothedDelta = this.smoothedDelta 
-      ? THREE.MathUtils.lerp(this.smoothedDelta, rawDelta, 0.20) 
-      : 0.0166;
-    const delta = this.smoothedDelta;
+    const delta = realDelta;
     const elapsedTime = (now - this.startTime) * 0.001;
 
     // 3. Dynamic Resolution Scaling (DRS) for Laptop Performance Preservation

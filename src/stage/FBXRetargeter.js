@@ -42,6 +42,7 @@ export class FBXRetargeter {
     const restRotationInverse = new THREE.Quaternion();
     const parentRestWorldRotation = new THREE.Quaternion();
     const _quatA = new THREE.Quaternion();
+    const _eulerHips = new THREE.Euler();
 
     // Adjust with reference to hips height
     const motionHipsNode = asset.getObjectByName('mixamorigHips') 
@@ -86,6 +87,15 @@ export class FBXRetargeter {
           for (let i = 0; i < clonedValues.length; i += 4) {
             _quatA.fromArray(clonedValues, i);
             _quatA.premultiply(parentRestWorldRotation).multiply(restRotationInverse);
+
+            // Hips Posture Guard: enforce upright posture, prevent upside-down inversions or severe rolls
+            if (vrmBoneName === 'hips') {
+              _eulerHips.setFromQuaternion(_quatA, 'YXZ');
+              _eulerHips.z = THREE.MathUtils.clamp(_eulerHips.z, -0.30, 0.30); // max ~17 deg roll
+              _eulerHips.x = THREE.MathUtils.clamp(_eulerHips.x, -0.60, 0.60); // natural dance pitch
+              _quatA.setFromEuler(_eulerHips);
+            }
+
             _quatA.toArray(clonedValues, i);
           }
         }

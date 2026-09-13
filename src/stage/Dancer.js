@@ -542,14 +542,19 @@ export class Dancer {
       }
     }
 
-    // 3. Compute Target Quaternions and smoothly slerp every finger bone
+    // 3. Compute Target Quaternions and smoothly slerp every finger bone (zero-allocation cached math)
     if (!this._handTargetQ) this._handTargetQ = new THREE.Quaternion();
     if (!this._handZAxis) this._handZAxis = new THREE.Vector3(0, 0, 1);
     if (!this._handYAxis) this._handYAxis = new THREE.Vector3(0, 1, 0);
+    if (!this._handQY) this._handQY = new THREE.Quaternion();
+    if (!this._wristOffsetQ) this._wristOffsetQ = new THREE.Quaternion();
+    if (!this._wristEuler) this._wristEuler = new THREE.Euler(0, 0, 0, 'YXZ');
+    if (!this._wristTargetQ) this._wristTargetQ = new THREE.Quaternion();
 
     const _targetQ = this._handTargetQ;
     const _zAxis = this._handZAxis;
     const _yAxis = this._handYAxis;
+    const _qY = this._handQY;
 
     const applyFingerPhalanx = (boneNode, curlZ, splayOutward, fingerSide, isRight, pulseOffset = 0) => {
       if (!boneNode) return;
@@ -564,8 +569,8 @@ export class Dancer {
       // fingerSide: Index: -1.0 (towards thumb side), Middle: 0.0, Ring/Little: +1.0 (towards pinky side)
       const effectiveSplay = splayOutward * fingerSide * handSign;
       if (Math.abs(effectiveSplay) > 1e-4) {
-        const qY = new THREE.Quaternion().setFromAxisAngle(_yAxis, effectiveSplay);
-        _targetQ.multiply(qY);
+        _qY.setFromAxisAngle(_yAxis, effectiveSplay);
+        _targetQ.multiply(_qY);
       }
       // Continuous spherical linear interpolation: silky-smooth 60fps transitions
       boneNode.quaternion.slerp(_targetQ, Math.min(1.0, delta * 14.0));
@@ -581,8 +586,8 @@ export class Dancer {
       // Opposition across palm toward middle finger
       const effectiveOpp = oppositionY * handSign;
       if (Math.abs(effectiveOpp) > 1e-4) {
-        const qY = new THREE.Quaternion().setFromAxisAngle(_yAxis, effectiveOpp);
-        _targetQ.multiply(qY);
+        _qY.setFromAxisAngle(_yAxis, effectiveOpp);
+        _targetQ.multiply(_qY);
       }
       boneNode.quaternion.slerp(_targetQ, Math.min(1.0, delta * 14.0));
     };
@@ -609,9 +614,10 @@ export class Dancer {
       }
 
       if (Math.abs(targetFlexZ) > 1e-4 || Math.abs(targetSupY) > 1e-4) {
-        if (!this._wristOffsetQ) this._wristOffsetQ = new THREE.Quaternion();
-        this._wristOffsetQ.setFromEuler(new THREE.Euler(-0.04, targetSupY, targetFlexZ, 'YXZ'));
-        wristNode.quaternion.slerp(wristNode.quaternion.clone().multiply(this._wristOffsetQ), Math.min(1.0, delta * 6.0));
+        this._wristEuler.set(-0.04, targetSupY, targetFlexZ, 'YXZ');
+        this._wristOffsetQ.setFromEuler(this._wristEuler);
+        this._wristTargetQ.copy(wristNode.quaternion).multiply(this._wristOffsetQ);
+        wristNode.quaternion.slerp(this._wristTargetQ, Math.min(1.0, delta * 6.0));
       }
     };
 

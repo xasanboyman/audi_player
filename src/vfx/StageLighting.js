@@ -232,11 +232,14 @@ export class StageLighting {
             const binIdx = Math.floor(Math.pow(normDist, 1.4) * 90 + 1);
             const val = (freqData[binIdx] || 0) / 255.0;
 
-            // Rhythmic transients: punchy kick pulse on center pillars, snare on flanks
-            const beatKick = kickImpulse * (2.2 + bass * 2.8) * (0.45 + centerWeight * 1.10);
-            const beatSnare = snareImpulse * (1.6 + mid * 2.0) * midWeight;
-            const freqHeight = Math.pow(val, 1.2) * 3.6;
-            targetScale = Math.max(0.12, freqHeight + beatKick + beatSnare);
+            // Rhythmic Dynamic Range Expansion:
+            // Prevents loud, heavily-compressed phonk tracks from locking bars at full height.
+            // Rhythmic transients (kick downbeat & snare backbeat) pump the bars with deep, punchy contrast!
+            const rhythmicPump = 0.32 + 0.68 * (kickImpulse * (0.5 + centerWeight * 0.9) + snareImpulse * (0.5 + midWeight * 0.8));
+            const freqHeight = Math.pow(val, 1.3) * 2.6 * rhythmicPump;
+            const beatKick = kickImpulse * (1.8 + bass * 2.2) * (0.4 + centerWeight * 1.1);
+            const beatSnare = snareImpulse * (1.4 + mid * 1.8) * midWeight;
+            targetScale = Math.max(0.10, freqHeight + beatKick + beatSnare);
           } else {
             // Synthetic beat-locked kinetic spectrum for YouTube and non-analysed audio
             const beatKick = kickImpulse * (2.4 + bass * 3.0) * (0.5 + centerWeight * 1.0);
@@ -250,11 +253,11 @@ export class StageLighting {
         }
 
         // Asymmetric attack/decay (zero-lag peak follower):
-        // On beat hits, rise INSTANTLY on that exact frame (0.92), then decay smoothly (0.20)
+        // On beat hits, rise INSTANTLY on that exact frame (0.95), then decay cleanly between beats (0.28)
         if (targetScale > this._barScales[i]) {
-          this._barScales[i] = THREE.MathUtils.lerp(this._barScales[i], targetScale, 0.92);
+          this._barScales[i] = THREE.MathUtils.lerp(this._barScales[i], targetScale, 0.95);
         } else {
-          this._barScales[i] = THREE.MathUtils.lerp(this._barScales[i], targetScale, 0.20);
+          this._barScales[i] = THREE.MathUtils.lerp(this._barScales[i], targetScale, 0.28);
         }
 
         const currentScaleY = this._barScales[i];
