@@ -203,6 +203,7 @@ export class SceneManager {
 
     const realDelta = Math.max(0.001, Math.min((now - this.lastFrameTime) * 0.001, 0.066));
     this.lastFrameTime = now;
+    const rawDelta = realDelta;
     const delta = realDelta;
     const elapsedTime = (now - this.startTime) * 0.001;
 
